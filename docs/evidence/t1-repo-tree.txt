@@ -1,0 +1,158 @@
+================================================================================
+T1 EVIDENCE — m365-tenant-admin repository scaffold
+================================================================================
+Repo path   : E:\code\githubAchimIsmaili\m365-tenant-admin
+Remote      : https://github.com/achimismaili/m365-tenant-admin (public)
+Commit      : 4d46032  chore: scaffold m365-tenant-admin toolkit (MIT)
+Captured    : 2026-08-30
+Captured by : automated scaffold run (plan todo T1)
+
+NOTE ON CAPTURE ORDERING
+  The `git status` block below was captured immediately after the scaffold
+  commit 4d46032 and after the push, but BEFORE this evidence file and
+  docs/evidence/t1-remote.md were themselves added to the index. Those two
+  files are committed in a follow-up commit; see the "post-evidence state"
+  note at the end. Nothing else was outstanding at capture time.
+
+--------------------------------------------------------------------------------
+1. DIRECTORY TREE (working tree, .git/ omitted)
+--------------------------------------------------------------------------------
+
+m365-tenant-admin/
+├── .gitignore
+├── LICENSE
+├── README.md
+├── docs/
+│   └── evidence/
+│       ├── t1-remote.md          (added in follow-up commit)
+│       ├── t1-repo-tree.txt      (this file, added in follow-up commit)
+│       └── raw/
+│           └── .gitkeep          (dir contents git-ignored)
+└── tools/
+    └── syntex-setup/
+        └── .gitkeep
+
+Raw on-disk enumeration (Get-ChildItem -Recurse -Force, .git excluded),
+as captured at commit 4d46032:
+
+    .gitignore
+    docs\
+    docs\evidence\
+    docs\evidence\raw\
+    docs\evidence\raw\.gitkeep
+    LICENSE
+    README.md
+    tools\
+    tools\syntex-setup\
+    tools\syntex-setup\.gitkeep
+
+--------------------------------------------------------------------------------
+2. TRACKED FILES  (git ls-files, at commit 4d46032)
+--------------------------------------------------------------------------------
+
+$ git ls-files
+.gitignore
+LICENSE
+README.md
+docs/evidence/raw/.gitkeep
+tools/syntex-setup/.gitkeep
+
+5 files, 196 insertions in the root commit.
+
+--------------------------------------------------------------------------------
+3. GIT STATUS
+--------------------------------------------------------------------------------
+
+$ git status --short --branch
+## main...origin/main
+
+Clean working tree. No modified, staged, deleted or untracked files. The branch
+line carries no [ahead N] / [behind N] marker, so local main and origin/main are
+identical.
+
+--------------------------------------------------------------------------------
+4. GIT REMOTE
+--------------------------------------------------------------------------------
+
+$ git remote -v
+origin  https://github.com/achimismaili/m365-tenant-admin.git (fetch)
+origin  https://github.com/achimismaili/m365-tenant-admin.git (push)
+
+$ git log --oneline --decorate
+4d46032 (HEAD -> main, origin/main) chore: scaffold m365-tenant-admin toolkit (MIT)
+
+$ gh repo view achimismaili/m365-tenant-admin --json name,visibility,url,licenseInfo
+{"licenseInfo":{"key":"mit","name":"MIT License","nickname":""},
+ "name":"m365-tenant-admin",
+ "url":"https://github.com/achimismaili/m365-tenant-admin",
+ "visibility":"PUBLIC"}
+
+Remote creation succeeded on the second attempt; the first attempt failed only
+because `gh repo create` rejects `--license` together with `--source`. Full
+detail in docs/evidence/t1-remote.md.
+
+--------------------------------------------------------------------------------
+5. GENERICITY CHECK — required grep
+--------------------------------------------------------------------------------
+
+Requirement: README.md and LICENSE must contain no domain-specific terms from
+the originating project. Expected result: 0 hits.
+
+$ git grep -rniE "tenero|docanalyzer|nebenkosten|wirtschaftseinheit" -- README.md LICENSE
+(no output)
+exit code: 1        <-- git grep exits 1 when there are NO matches
+
+RESULT: 0 hits. PASS.
+
+--------------------------------------------------------------------------------
+6. GENERICITY CHECK — broader sweep (defence in depth)
+--------------------------------------------------------------------------------
+
+A wider term list was swept across every tracked file, not just README/LICENSE:
+
+$ git grep -rniE "tenero|docanalyzer|nebenkosten|wirtschaftseinheit|workiq|\
+ismaili dms|IDMS|Hoch13|Sued13|AblageID|Mieter" -- . ":(exclude)LICENSE"
+(no output)
+exit code: 1
+
+RESULT: 0 hits. PASS.
+
+LICENSE is excluded from this second sweep only because the MIT copyright line
+reads "Copyright (c) 2026 Achim Ismaili" — the surname of the copyright holder.
+That is the author's own name, deliberately present, and is not a reference to
+any project-specific concept. The required grep in section 5 does cover LICENSE
+and returns 0 hits.
+
+The only organisation-adjacent strings anywhere in the repository are the
+copyright holder's name in LICENSE and in the README licence footer. Every
+example value in README.md is a Microsoft-supplied placeholder
+("contoso.onmicrosoft.com", "tenant-a", "user-01").
+
+--------------------------------------------------------------------------------
+7. GITIGNORE BEHAVIOUR
+--------------------------------------------------------------------------------
+
+docs/evidence/raw/ is excluded via the pattern `docs/evidence/raw/*` rather than
+a bare `docs/evidence/raw/`. This is deliberate: git does not descend into an
+excluded directory, so a bare directory pattern would make the negation
+`!docs/evidence/raw/.gitkeep` unusable and the directory would be absent from a
+fresh clone. With the /* form, the directory exists in a clone, the .gitkeep is
+tracked, and every other file inside it is ignored.
+
+Also excluded: *-raw.json, *-raw.xml, *-raw.csv, *-raw.txt, *-secret.*, *.secret,
+secrets.json, .env, and the usual credential/certificate extensions
+(*.pfx *.p12 *.pem *.key *.cer *.crt).
+
+--------------------------------------------------------------------------------
+8. POST-EVIDENCE STATE
+--------------------------------------------------------------------------------
+
+After this file and docs/evidence/t1-remote.md are committed and pushed, the
+repository contains two commits:
+
+    <hash>   docs: record T1 scaffold and remote-creation evidence
+    4d46032  chore: scaffold m365-tenant-admin toolkit (MIT)
+
+and `git status` is clean with local main level with origin/main.
+
+================================================================================
