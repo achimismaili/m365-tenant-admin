@@ -1,0 +1,4 @@
+# Placeholder so this directory exists in a fresh clone.
+# Raw, unredacted tenant exports live here and are never committed —
+# every file in this directory except this one is excluded by .gitignore.
+# Treat the contents as confidential; keep them on secured storage only.
