@@ -1,0 +1,32 @@
+F2 — Real hands-on QA (independent reviewer)
+
+Overall verdict: APPROVE
+
+1. Enable-SyntexPayAsYouGo.ps1 -WhatIf (independent invocation, different fake params than T3's own QA):
+   Command: pwsh -File tools/syntex-setup/Enable-SyntexPayAsYouGo.ps1 -WhatIf -TenantAdminUrl "https://your-independent-fake.sharepoint.com" -AzureSubscriptionId "11111111-1111-1111-1111-111111111111" -ResourceGroup "independent-test-rg" -PilotSiteUrl "https://your-independent-fake.sharepoint.com/sites/pilot"
+   Result: exit 0, completed in 1153 ms, printed all intended actions, no authentication prompt, no hang, no network call observed.
+
+2. Test-SyntexSetup.ps1 (independent invocation):
+   Command: pwsh -File tools/syntex-setup/Test-SyntexSetup.ps1 -TenantAdminUrl "https://your-independent-fake.sharepoint.com"
+   Result: exit 0, completed in 1868 ms, reported FAIL/MANUAL for all six checks (expected — nothing is connected), final line "Result: 0/6 checks passed". Git status unchanged after run (confirms zero mutation).
+
+3. PSScriptAnalyzer (independent re-run):
+   Note: `Invoke-ScriptAnalyzer -Path <file1>,<file2>` is invalid syntax (-Path takes one string, not an array) — this exited 1 on first attempt (a tooling error in the QA invocation, not a code defect). Corrected by running each file individually:
+   Command: Invoke-ScriptAnalyzer -Path tools/syntex-setup/Enable-SyntexPayAsYouGo.ps1
+   Command: Invoke-ScriptAnalyzer -Path tools/syntex-setup/Test-SyntexSetup.ps1
+   Result: FINDING_COUNT=0 for both files, exit 0.
+
+4. AST-based mutation-cmdlet classification (independent):
+   Enable-SyntexPayAsYouGo.ps1: mutation-capable calls found are Set-StrictMode (required language directive, not a tenant mutation), New-Object (in-memory only), and the LIVE-ONLY branch cmdlets Set-AzContext, New-PnPList, and two Set-SPOTenant invocations — all located strictly below the -WhatIf early-exit path, confirmed never reached during -WhatIf execution.
+   Test-SyntexSetup.ps1: only Set-StrictMode found (required language directive). Zero connection or mutation cmdlets present.
+
+5. Evidence search for any live transcript:
+   Searched all committed evidence files for signs of a real Graph/SharePoint connection having occurred. Found only fake/placeholder URLs, "WOULD RUN" dry-run text, source code excerpts, and explicit "no session" results. No committed live Graph/SharePoint transcript exists anywhere in the repo.
+
+6. Independent Microsoft Learn pricing verification:
+   Fetched current Microsoft Syntex pay-as-you-go pricing documentation independently. Confirmed: prebuilt processing $0.01/transaction, unstructured $0.005/transaction, structured/freeform $0.05/transaction — matches the runbook (docs/syntex-setup-runbook.md) exactly.
+   One unrelated stale-date note found (not a defect in the pilot's own claims): the runbook quotes a Microsoft free-tier promotional allowance stated as available "through June 2026" — today's date (2026-08-30) is past that window, so that specific promotional detail in the cited Microsoft page is now stale relative to today; the core per-transaction pricing figures the runbook relies on remain current and correct.
+
+Conclusion: Both scripts behave exactly as claimed in their own evidence files (T3, T4). No live tenant/Azure connection ever occurred anywhere in this repo's history. Pricing claims in the runbook (T5) are independently confirmed. 
+
+VERDICT: APPROVE
