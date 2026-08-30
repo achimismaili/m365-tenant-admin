@@ -1,0 +1,71 @@
+T5 runbook self-check - docs/syntex-setup-runbook.md
+Generated: 2026-08-30T22:34:23.7206721+02:00
+
+=== CHECK 1: eight H2 headings, in order ===
+15: ## 1. What Syntex does + the full cost model
+74: ## 2. Prerequisites
+118: ## 3. Step-by-step
+219: ## 4. Cost control
+268: ## 5. Verification
+292: ## 6. How to turn it off
+326: ## 7. Region and data residency
+349: ## 8. Scope note
+
+=== CHECK 2: verified pricing figures ===
+37: | Prebuilt document processing | per page (PDF or image) | **$0.01 / transaction** |
+38: | Unstructured document processing (custom classification) | per page, sheet, slide or file | **$0.005 / transaction** |
+39: | Structured and freeform document processing (custom extraction) | per page (PDF or image) | **$0.05 / transaction** |
+
+=== CHECK 3: real Microsoft Learn citation URL ===
+42: <https://learn.microsoft.com/microsoft-365/documentprocessing/syntex-pay-as-you-go-services>
+70: <https://learn.microsoft.com/microsoft-365/documentprocessing/promo-syntex>
+82: <https://learn.microsoft.com/office365/servicedescriptions/microsoft-syntex-service-description/microsoft-syntex-service-description>
+102: <https://learn.microsoft.com/microsoft-365/documentprocessing/syntex-azure-billing>.
+163: Reference: <https://learn.microsoft.com/microsoft-365/documentprocessing/syntex-azure-billing>
+241: <https://learn.microsoft.com/microsoft-365/documentprocessing/syntex-azure-billing>
+333: > <https://learn.microsoft.com/microsoft-365/documentprocessing/syntex-azure-billing>
+
+=== CHECK 4: budget alert is NOT a hard cap + 24h lag ===
+230: > **A budget alert is a notification, not a hard spending cap.** Azure will not stop processing, will
+234: > **Cost data lags.** Microsoft states usage information "might take up to 24 hours to appear in Cost
+318: **Post-run cost check, do not skip this.** Because cost data lags up to 24 hours, turning the service
+
+=== CHECK 5: billed on upload AND update AND failure, per model ===
+53: - **Uploads are billed.** Every document added to a library with a model applied is processed.
+54: - **Subsequent updates are billed again.** Editing an already processed file re-processes it. A file
+56: - **Failures are billed.** You pay "whether or not there's a positive classification, or any
+58: - **Each applied model is metered separately.** Microsoft's own example: two models applied to one
+
+=== CHECK 6: both paths - portal AND scripted ===
+130: https://admin.microsoft.com
+133: -> Activate pay-as-you-go services
+167: `tools/syntex-setup/Enable-SyntexPayAsYouGo.ps1` is idempotent: re-running it against an already
+170: **Mode 1: `-WhatIf`, fully offline dry run.** Opens no connection, contacts no tenant, mutates
+174: .\Enable-SyntexPayAsYouGo.ps1 -WhatIf `
+183: **Mode 2: `-Preflight`, authenticated but read-only.** Connects and proves the subscription, resource
+188: .\Enable-SyntexPayAsYouGo.ps1 -Preflight `
+202: .\Enable-SyntexPayAsYouGo.ps1 `
+215: Full help: `Get-Help .\Enable-SyntexPayAsYouGo.ps1 -Full`.
+308: https://admin.microsoft.com
+
+=== CHECK 7: Test-SyntexSetup.ps1 referenced ===
+270: `tools/syntex-setup/Test-SyntexSetup.ps1` is the read-only companion verifier. It re-runs safely,
+275: .\Test-SyntexSetup.ps1 `
+
+=== CHECK 8: explicit warning that billing extends beyond one library if unscoped ===
+157: -> site options: choose "Selected sites" and add ONLY the pilot site
+211: Omitting `-PilotSiteUrl` means tenant-wide enablement, which the script **refuses** unless you also
+252: 1. Always choose **Selected sites** in the portal, or supply `-PilotSiteUrl` to the script.
+255: 3. Never accept tenant-wide unless someone with budget authority has explicitly acknowledged it in
+284: one that separates a $2 pilot from a tenant-wide bill.
+
+=== CHECK 9: GENERICITY - must be ZERO hits ===
+PASS: no client-specific identifiers found.
+
+=== CHECK 10: GENERICITY - only placeholder GUID / tenant / site literals ===
+Distinct GUIDs present: 00000000-0000-0000-0000-000000000000
+PASS: only the all-zero placeholder GUID is present.
+Distinct SharePoint hosts: contoso-admin.sharepoint.com, contoso.sharepoint.com
+
+=== CHECK 11: no em/en dashes ===
+PASS: no em or en dashes.
