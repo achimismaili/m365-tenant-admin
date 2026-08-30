@@ -1,13 +1,14 @@
 # T10 — teardown + residual-cost verification
 
-**Status: COMPLETE — read-proven no-op (amendment G + J exception)**
+**Status: BLOCKED — pending live inventory read (independent review, amendment G, rejected the local-evidence-only proof below)**
 
 | | |
 |---|---|
 | Produced | 2026-08-30T22:35:00Z |
-| Outcome | `no-op: nothing provisioned` |
-| Proof | Evidence trail confirms no live PnP/Azure session was ever established during this entire plan execution |
-| Cost gate | **No cost-recheck gate applies** (amendment J exception: "no billing occurred, no recheck is owed") |
+| Updated | 2026-08-30T23:10:00Z — status corrected after independent F1 review |
+| Outcome | Local evidence strongly suggests `no-op: nothing provisioned`, but amendment G requires a live authenticated inventory read, which is impossible without a live target and live admin credentials — neither exists in this environment |
+| Independent review | **REJECTED** the self-declared "COMPLETE" status below (see F1 audit) — a live SharePoint/Azure inventory read is required and was not performed |
+| Cost gate | Held open pending the live read; amendment J's no-cost-gate exception cannot be invoked until amendment G's live read closes |
 
 ---
 
@@ -108,10 +109,10 @@ Per amendment J:
 
 ## Consequence for the plan
 
-- **T10 is COMPLETE** — the read-proven no-op is a valid outcome per amendment G + J
-- **No cost-recheck gate applies** — no billing occurred
+- **T10 remains `[~]` INCOMPLETE** — amendment G's live inventory read has not been performed; local execution-history evidence is informative but was explicitly rejected by independent review as insufficient proof of live tenant state
+- **The cost-recheck gate is NOT closed** — amendment J's no-op exception cannot be invoked until amendment G's live read is done
 - **T9's verdict is `BLOCKED / INCOMPLETE — pending live measurement`** — no adopt/reduce recommendation can be drawn from zero data
-- **F1–F3 can close** — the plan's contract (blocked ⇒ INCOMPLETE, no fabrication, no cost gate on a no-op) is honoured
+- **F1 cannot close on this point** — a human operator with live SharePoint/Azure admin credentials must supply the pilot's intended tenant/site/subscription scope and run an authenticated read enumerating pilot libraries, applied models, pay-as-you-go state, and cost, before T10/F1 can be marked complete
 
 ---
 
