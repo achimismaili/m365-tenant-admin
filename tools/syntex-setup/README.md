@@ -7,7 +7,7 @@ result.
 | Script | Kind | Status |
 |---|---|---|
 | [`Enable-SyntexPayAsYouGo.ps1`](Enable-SyntexPayAsYouGo.ps1) | Mutating, idempotent | Available |
-| `Test-SyntexSetup.ps1` | Read-only verifier | Not yet written |
+| [`Test-SyntexSetup.ps1`](Test-SyntexSetup.ps1) | Read-only verifier | Available |
 | `pilot-sample.md` | Sampling methodology for a measured pilot | Available |
 
 ---
@@ -177,3 +177,174 @@ Install-Module Az.Accounts, Az.Resources              -Scope CurrentUser
 ```
 
 None of these are needed for `-WhatIf`, which is fully offline.
+
+---
+
+## `Test-SyntexSetup.ps1`
+
+The read-only half of the pair. It answers one question — *is the pilot actually set up the
+way it was meant to be?* — and answers it without changing anything.
+
+### The read-only contract
+
+There is no mutation anywhere in the file. The only state-changing statement is the mandatory
+`Set-StrictMode -Version Latest`, which changes nothing outside its own PowerShell scope.
+
+It also **does not sign in**. There is no `Connect-*` call in the script at all. It inspects the
+sessions that already exist in the calling session and reports what it finds. That is deliberate:
+
+- it makes check 1 (*am I looking at the right tenant?*) a genuine measurement rather than a
+  tautology;
+- running the verifier can never open a browser, consume a token, or start a billable operation.
+
+So sign in first, then run it:
+
+```powershell
+Connect-PnPOnline -Url "https://contoso-admin.sharepoint.com" -Interactive
+Connect-SPOService -Url "https://contoso-admin.sharepoint.com"   # optional, enables checks 2 and 4b
+Connect-AzAccount                                                 # optional, enables checks 3 and 6
+.\Test-SyntexSetup.ps1 -TenantAdminUrl "https://contoso-admin.sharepoint.com" ...
+```
+
+Run it with no session at all and it still runs cleanly — it reports `[FAIL]` / `[MANUAL]` with the
+reason, which is the correct answer to "is this set up?" when nobody is signed in.
+
+That claim is measured, not asserted: 60 command breakpoints across every sign-in, mutation,
+publish, raw-HTTP and filesystem cmdlet, **0 tripped** in both PowerShell editions, plus a full AST
+walk showing the only mutating-verb command in the file is `Set-StrictMode`. See
+[`docs/evidence/t4-test-scaffold.txt`](../../docs/evidence/t4-test-scaffold.txt).
+
+### The six checks
+
+| # | Check | Can it be `[PASS]`? |
+|---|---|---|
+| 1 | A live session exists and resolves to the tenant named by `-TenantAdminUrl` | Always `[PASS]` or `[FAIL]` — fully readable |
+| 2 | Pay-as-you-go document processing is activated | Only if a future `Get-SPOTenant` build exposes it; today `[MANUAL]` |
+| 3 | Azure subscription + resource group linkage is present | `[PASS]` when a document processing meter is found on the scope |
+| 4 | Pilot library exists **and** the processing scope is as expected | Yes — both halves are readable |
+| 5 | Model creation entry point is reachable (**configuration check only**) | Yes — when a content center site resolves |
+| 6 | Azure budget with an enabled alert exists on the billing scope | Yes — via `Get-AzConsumptionBudget` |
+
+Every check prints `[PASS]`, `[FAIL]` or `[MANUAL]`, and the run ends with a single
+machine-readable line:
+
+```
+Result: 4/6 checks passed
+```
+
+Only `[PASS]` counts. `[MANUAL]` and `[FAIL]` do not.
+
+### The honesty rule
+
+Where a state is not programmatically readable, the check prints `[MANUAL]` **and the exact portal
+location**. It never prints `[PASS]` for something it could not observe, and it never rounds a
+plausible proxy up to a pass. Two places where that rule does real work:
+
+- **Check 2.** Billing activation has no documented read cmdlet in any module. Rather than hard-code
+  that forever, the check probes `Get-SPOTenant`'s *live* property surface by name, so it will start
+  reporting the truth on its own if Microsoft ever adds one. Until then it reports `[MANUAL]`. The
+  current processing scope is printed as corroboration only — a scope can be set without billing
+  being linked, so it is not proof.
+- **Check 3.** The Microsoft 365 → Azure linkage is portal-only, but it can still be proven
+  *positively*: a document processing meter charged against the resource group could only have got
+  there through the linkage. Absence proves nothing — a freshly linked pilot that has processed
+  nothing bills nothing — so absence yields `[MANUAL]`, never `[FAIL]`.
+
+Verdict precedence inside a check with several halves is **FAIL > MANUAL > PASS**: a measured
+negative is never softened into "go look in the portal", and an unreadable state is never rounded up.
+
+### Check 5 creates nothing
+
+Check 5 is a *capability and reachability* check. It reads whether the model read cmdlet surface
+(`Get-PnPSyntexModel`) is loadable and whether a content center site exists — identified by its web
+template `CONTENTCTR#0`, which is the model creation interface. It does **not** create a model, a
+content center, a library or a content type. Creation is mutation.
+
+A missing content center is reported `[MANUAL]`, not `[FAIL]`: models can also be created locally
+from a document library's own **Automate → Set up a model** menu, so absence does not prove the
+capability is unreachable.
+
+### Check 6 — budget and alert
+
+A budget alert is a **notification, not a hard spending cap**. It bounds surprise, not spend. So a
+budget that exists with no enabled alert is a `[FAIL]`, not a `[PASS]` — it notifies nobody.
+
+`Get-AzConsumptionBudget` reads budgets at subscription or resource group scope. Microsoft documents
+the PowerShell Consumption SDK as available to **Enterprise Agreement customers only**, so on a
+non-EA subscription the read can fail even though a budget exists in the portal. That failure is
+reported `[MANUAL]` with the portal location — never `[FAIL]`, and never `[PASS]`.
+
+### Parameters
+
+`-PilotSiteUrl` and `-PilotLibraryName` are spelled and meant exactly as in
+`Enable-SyntexPayAsYouGo.ps1`, so the two scripts take the same arguments.
+
+| Parameter | Required | Purpose |
+|---|---|---|
+| `-TenantAdminUrl` | Yes | The expected tenant. Never contacted; check 1 compares the existing session against it. |
+| `-PilotSiteUrl` | No | The site processing is supposed to be scoped to. Same name/meaning as in the enable script. |
+| `-PilotLibraryName` | No | The dedicated pilot library. Same name/meaning as in the enable script. Reading it needs the PnP session pointed at `-PilotSiteUrl`. |
+| `-AzureSubscriptionId` | No | Enables the Azure-side reads in checks 3 and 6. |
+| `-ResourceGroup` | No | Narrows checks 3 and 6 to that resource group scope. |
+| `-BudgetName` | No | Look for one specific budget. Omitted: any budget with an enabled alert satisfies check 6. |
+| `-MaxBudgetAmount` | No | Ceiling for the pilot. A budget above it fails check 6 — a budget set far above intended spend is not a guard rail. |
+| `-ContentCenterUrl` | No | Verify one specific content center. Omitted: sites are enumerated by web template `CONTENTCTR#0` rather than guessing a URL. |
+| `-UsageLookbackDays` | No | How far back check 3 looks for a document processing meter. Default 30. |
+| `-FailOnIncomplete` | No | Exit `1` unless every check returned `[PASS]`. Without it the script always exits `0` and the `Result:` line is the verdict. |
+
+### PowerShell edition caveat, sharpened
+
+`Microsoft.Online.SharePoint.PowerShell` still cannot load under PowerShell 7, so checks 2 and the
+scope half of check 4 degrade to `[MANUAL]` there. Testing this script surfaced the mirror image of
+that problem on the same host: `Az.Billing 2.3.0` demands `Az.Accounts 5.5.0` under PowerShell 7,
+and `Az.Accounts 5.3.2` throws `MissingMethodException` under Windows PowerShell 5.1.
+
+| | PowerShell 7.6 | Windows PowerShell 5.1 |
+|---|---|---|
+| `Microsoft.Online.SharePoint.PowerShell` | `TypeLoadException` — cannot load | Loads; `Get-SPOTenant` reachable |
+| `Az.Accounts` 5.3.2 | Loads; context readable | `Get-AzContext` throws |
+| `Az.Billing` 2.3.0 | Wants `Az.Accounts` 5.5.0 | blocked by the above |
+
+So on an unrepaired host the SharePoint reads and the Azure reads cannot run in the same edition.
+The verifier degrades each affected check independently rather than failing, so it still produces a
+useful report either way — but a live verification run wants the Az module set repaired first:
+
+```powershell
+Install-Module Az.Accounts -RequiredVersion 5.5.0 -Scope CurrentUser -Force
+```
+
+### Idempotency
+
+Trivial: it is read-only, so any number of runs produce the same result and no side effect.
+
+### Examples
+
+```powershell
+# Minimal - reports what it can read from whatever sessions exist
+.\Test-SyntexSetup.ps1 -TenantAdminUrl "https://contoso-admin.sharepoint.com"
+
+# Verify the pilot library itself (session must be pointed at the pilot site)
+Connect-PnPOnline -Url "https://contoso.sharepoint.com/sites/pilot" -Interactive
+.\Test-SyntexSetup.ps1 `
+    -TenantAdminUrl "https://contoso-admin.sharepoint.com" `
+    -PilotSiteUrl "https://contoso.sharepoint.com/sites/pilot" `
+    -PilotLibraryName "Syntex Pilot"
+
+# Full run including the Azure linkage and budget reads, capped at 50
+.\Test-SyntexSetup.ps1 `
+    -TenantAdminUrl "https://contoso-admin.sharepoint.com" `
+    -PilotSiteUrl "https://contoso.sharepoint.com/sites/pilot" `
+    -PilotLibraryName "Syntex Pilot" `
+    -AzureSubscriptionId "00000000-0000-0000-0000-000000000000" `
+    -ResourceGroup "rg-syntex-pilot" `
+    -BudgetName "syntex-pilot-budget" `
+    -MaxBudgetAmount 50
+```
+
+Full comment-based help is in the script: `Get-Help .\Test-SyntexSetup.ps1 -Full`.
+
+### Evidence produced
+
+| File | Contents |
+|---|---|
+| [`docs/evidence/t4-test-scaffold.txt`](../../docs/evidence/t4-test-scaffold.txt) | Scaffold transcripts in both PowerShell editions, `-FailOnIncomplete` exit codes, comment-based-help completeness, PSScriptAnalyzer output, and three independent proofs that the script mutates nothing: an AST walk of every command it can invoke, a classified grep, and 60 command breakpoints with 0 trips. Redacted — placeholder values only, with the raw transcript's SHA-256 recorded. |

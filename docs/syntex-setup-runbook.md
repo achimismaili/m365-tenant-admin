@@ -267,25 +267,40 @@ did not expect, stop and resolve that before activating anything new.
 
 ## 5. Verification
 
-`tools/syntex-setup/Test-SyntexSetup.ps1` is the read-only companion verifier. It re-runs safely,
-mutates nothing, and reports `[PASS]` or `[FAIL]` per check: billing linkage state, the resolved
-processing scope, the selected-sites list, and the presence of the pilot library.
+`tools/syntex-setup/Test-SyntexSetup.ps1` is the read-only companion verifier. It re-runs safely and
+mutates nothing — it does not even sign in. It reports `[PASS]`, `[FAIL]` or `[MANUAL]` for each of
+six checks: the tenant session, billing activation, the Azure subscription and resource group
+linkage, the pilot library plus the resolved processing scope and selected-sites list, the model
+creation entry point, and the Azure budget alert. It ends with one line, `Result: N/6 checks passed`,
+in which only `[PASS]` counts.
+
+Because it never signs in, sign in first:
 
 ```powershell
+Connect-PnPOnline -Url "https://contoso-admin.sharepoint.com" -Interactive
+Connect-SPOService -Url "https://contoso-admin.sharepoint.com"
+Connect-AzAccount
+
 .\Test-SyntexSetup.ps1 `
     -TenantAdminUrl "https://contoso-admin.sharepoint.com" `
     -AzureSubscriptionId "00000000-0000-0000-0000-000000000000" `
     -ResourceGroup "rg-syntex-pilot" `
-    -PilotSiteUrl "https://contoso.sharepoint.com/sites/pilot"
+    -PilotSiteUrl "https://contoso.sharepoint.com/sites/pilot" `
+    -PilotLibraryName "Syntex Pilot"
 ```
 
 Run it after enablement and **before uploading any billable document**. A green run is your evidence
-that the scope is what you think it is. Confirm `[PASS]` on the scope check specifically: it is the
-one that separates a $2 pilot from a tenant-wide bill.
+that the scope is what you think it is. Confirm `[PASS]` on check 4 specifically: it is the one that
+separates a $2 pilot from a tenant-wide bill.
 
-If the script is not present in your copy of the repo yet, do the equivalent by hand: read the
-current scope with `Get-SPOTenant` and confirm `PrebuiltModelScope` is `SelectedSites` and that
-`PrebuiltModelSelectedSitesList` contains only your pilot site.
+`[MANUAL]` is not a failure and not a pass — it means the state is genuinely not readable from
+PowerShell, and the check prints the exact portal location to look at instead. Billing activation
+(check 2) is the usual one: it has no read cmdlet, so expect to confirm it by eye. Never treat a
+`[MANUAL]` as verified.
+
+If you would rather do the scope check by hand, read the current scope with `Get-SPOTenant` and
+confirm `PrebuiltModelScope` is `SelectedSites` and that `PrebuiltModelSelectedSitesList` contains
+only your pilot site.
 
 ---
 

@@ -1,0 +1,550 @@
+T4 - Test-SyntexSetup.ps1 : read-only verification scaffold
+==========================================================
+
+Generated : 2026-08-30
+Script    : tools/syntex-setup/Test-SyntexSetup.ps1
+Pairs with: tools/syntex-setup/Enable-SyntexPayAsYouGo.ps1 (T3)
+
+AUTHORING PASS ONLY. No tenant was contacted, no credential was used and no
+sign-in was performed. Every run below is against the placeholder tenant
+https://fake-admin.sharepoint.com, which does not exist. The verifier is
+read-only by construction and never signs in, so a run against a fake target
+is meaningful: it exercises every code path except the ones that need live
+data, and it reports FAIL/MANUAL exactly where it cannot observe state.
+
+REDACTION: this host has a signed-in Azure context. Its subscription GUID and
+the operator UPN are replaced below with <redacted-subscription-guid> and
+<redacted-operator-upn>. The unredacted transcript is in the gitignored
+docs/evidence/raw/ folder; its SHA-256 is recorded at the end of this file.
+
+==============================================================================
+A. Environment
+==============================================================================
+
+pwsh            : 7.6.5 (Core)
+Windows PowerShell: 5.1.26100.9278 (Desktop)
+
+Relevant modules present on this host:
+
+Name                                   Version
+----                                   -------
+Az.Accounts                            5.3.2
+Az.Billing                             2.3.0
+Az.Resources                           9.0.1
+Microsoft.Online.SharePoint.PowerShell 16.0.25715.12000
+Microsoft.Online.SharePoint.PowerShell 16.0.27424.12000
+Microsoft.Online.SharePoint.PowerShell 16.0.27515.12000
+PnP.PowerShell                         1.12.0
+PSScriptAnalyzer                       1.25.0
+
+==============================================================================
+B. Scaffold run - PowerShell 7, minimal invocation
+==============================================================================
+
+pwsh -NoProfile -File Test-SyntexSetup.ps1 -TenantAdminUrl "https://fake-admin.sharepoint.com"
+
+
+Microsoft Syntex - pay-as-you-go setup verification (READ-ONLY)
+==============================================================
+This script reads and reports. It creates nothing, changes nothing,
+activates nothing and signs in to nothing.
+
+Tenant admin URL    : https://fake-admin.sharepoint.com
+Expected tenant     : fake
+Pilot site          : <not supplied>
+Pilot library       : <not supplied>
+Azure subscription  : <not supplied>
+Resource group      : <not supplied>
+Budget name         : <any budget with an enabled alert>
+Budget ceiling      : <not asserted>
+Content center      : <discover by web template CONTENTCTR#0>
+PowerShell          : 7.6.5 (Core)
+
+Session discovery (read-only - no sign-in is attempted)
+-------------------------------------------------------
+  PnP.PowerShell      : No PnP.PowerShell connection is open in this session (The current connection holds no SharePoint context. Please use one of the Connect-PnPOnline commands which uses the -Url argument to connect.).
+  SPO Management Shell: Microsoft.Online.SharePoint.PowerShell is installed but cannot be loaded in this PowerShell edition (Core), so Get-SPOTenant is unavailable. Re-run from Windows PowerShell 5.1, or install a Core-compatible build.
+  Azure               : Azure context found.
+                        context subscription: <redacted-subscription-guid>
+
+Checks
+------
+
+[FAIL] 1. Connected to the tenant named by -TenantAdminUrl
+       No PnP.PowerShell connection is open in this session (The current connection holds no SharePoint context. Please use one of the Connect-PnPOnline commands which uses the -Url argument to connect.).
+       Nothing is signed in, so nothing can be verified against the tenant.
+       Sign in first, then re-run. For example: Connect-PnPOnline -Url 'https://fake-admin.sharepoint.com' -Interactive
+       Note: Microsoft.Online.SharePoint.PowerShell is installed but cannot be loaded in this PowerShell edition (Core), so Get-SPOTenant is unavailable. Re-run from Windows PowerShell 5.1, or install a Core-compatible build.
+
+[MANUAL] 2. Pay-as-you-go document processing is activated
+       Microsoft.Online.SharePoint.PowerShell is installed but cannot be loaded in this PowerShell edition (Core), so Get-SPOTenant is unavailable. Re-run from Windows PowerShell 5.1, or install a Core-compatible build.
+       Check it by hand here:
+         https://admin.microsoft.com
+           -> Settings -> Org settings -> Pay-as-you-go services
+           -> Syntex services (or Document processing services) -> Manage billing
+         During initial setup the same state lives under
+           Setup -> Billing and licenses -> Activate pay-as-you-go services -> Get started
+           -> Pay-as-you-go services -> Billing tab -> Document processing services
+         Older admin-center builds: Settings -> Org settings -> Services -> Microsoft Syntex
+
+[MANUAL] 3. Azure subscription and resource group linkage is present
+       Neither -AzureSubscriptionId nor -ResourceGroup was supplied, so there is nothing to verify against.
+       Confirm the linkage by hand here:
+         https://admin.microsoft.com
+           -> Settings -> Org settings -> Pay-as-you-go services -> Syntex services
+           -> Manage billing -> the Azure subscription and resource group shown there
+         Cross-check the Azure side at https://portal.azure.com
+           -> Cost Management + Billing -> Cost Management -> Cost analysis
+           -> scope to the resource group -> group by Meter
+
+[MANUAL] 4. Pilot library exists and the processing scope is as expected
+       -PilotLibraryName was not supplied, so no library was checked.
+       Processing scope not readable: Microsoft.Online.SharePoint.PowerShell is installed but cannot be loaded in this PowerShell edition (Core), so Get-SPOTenant is unavailable. Re-run from Windows PowerShell 5.1, or install a Core-compatible build.
+       Check both halves by hand here:
+         Library: the pilot site -> Settings gear -> Site contents
+         Scope  : https://admin.microsoft.com -> Pay-as-you-go services -> Settings tab
+                  -> Document processing services -> Prebuilt document processing -> site options
+
+[MANUAL] 5. Model creation entry point is reachable (configuration check only)
+       This check reads only. It never creates a model, a content center or any other object.
+       Model read cmdlet     : Get-PnPSyntexModel is available from PnP.PowerShell.
+       No PnP session is open, so neither the content center nor the model list can be read.
+       Check it by hand here:
+         https://admin.microsoft.com -> SharePoint admin center -> Active sites
+           -> look for the site whose template is "Content center"
+         Or, for a local model: the pilot library -> Automate -> Set up a model
+         Creating a content center is a mutation and is out of scope for this verifier.
+
+[MANUAL] 6. Azure budget with an enabled alert exists on the billing scope
+       A budget alert is a notification, not a hard spending cap. It bounds surprise, not spend.
+       Neither -AzureSubscriptionId nor -ResourceGroup was supplied, so no budget scope was given to verify.
+       Check it by hand here:
+         https://portal.azure.com
+           -> Cost Management + Billing -> Cost Management
+           -> Scope: select the subscription
+           -> Budgets -> open the budget
+           -> confirm both "Alert conditions" (a threshold) and "Alert recipients" (an email) are set
+
+Summary
+-------
+  [FAIL] 1. Connected to the tenant named by -TenantAdminUrl
+  [MANUAL] 2. Pay-as-you-go document processing is activated
+  [MANUAL] 3. Azure subscription and resource group linkage is present
+  [MANUAL] 4. Pilot library exists and the processing scope is as expected
+  [MANUAL] 5. Model creation entry point is reachable (configuration check only)
+  [MANUAL] 6. Azure budget with an enabled alert exists on the billing scope
+
+PASS: 0   FAIL: 1   MANUAL: 5   (only PASS counts as passed)
+
+Result: 0/6 checks passed
+
+Nothing was created, changed, activated or published by this run.
+
+exit code: 0
+
+==============================================================================
+C. Scaffold run - PowerShell 7, every parameter supplied
+==============================================================================
+
+Exercises the parameterised branches of checks 3, 4 and 6. -AzureSubscriptionId
+is deliberately malformed so that the GUID gate fires BEFORE any Azure read, which
+is what keeps this authoring pass free of network calls while still walking the code.
+
+Arguments: -TenantAdminUrl https://fake-admin.sharepoint.com
+           -PilotSiteUrl https://fake.sharepoint.com/sites/pilot
+           -PilotLibraryName "Syntex Pilot"
+           -AzureSubscriptionId not-a-guid
+           -ResourceGroup rg-syntex-pilot
+           -BudgetName syntex-pilot-budget
+           -MaxBudgetAmount 50
+
+
+Microsoft Syntex - pay-as-you-go setup verification (READ-ONLY)
+==============================================================
+This script reads and reports. It creates nothing, changes nothing,
+activates nothing and signs in to nothing.
+
+Tenant admin URL    : https://fake-admin.sharepoint.com
+Expected tenant     : fake
+Pilot site          : https://fake.sharepoint.com/sites/pilot
+Pilot library       : Syntex Pilot
+Azure subscription  : not-a-guid
+Resource group      : rg-syntex-pilot
+Budget name         : syntex-pilot-budget
+Budget ceiling      : 50
+Content center      : <discover by web template CONTENTCTR#0>
+PowerShell          : 7.6.5 (Core)
+
+Session discovery (read-only - no sign-in is attempted)
+-------------------------------------------------------
+  PnP.PowerShell      : No PnP.PowerShell connection is open in this session (The current connection holds no SharePoint context. Please use one of the Connect-PnPOnline commands which uses the -Url argument to connect.).
+  SPO Management Shell: Microsoft.Online.SharePoint.PowerShell is installed but cannot be loaded in this PowerShell edition (Core), so Get-SPOTenant is unavailable. Re-run from Windows PowerShell 5.1, or install a Core-compatible build.
+  Azure               : Azure context found.
+                        context subscription: <redacted-subscription-guid>
+
+Checks
+------
+
+[FAIL] 1. Connected to the tenant named by -TenantAdminUrl
+       No PnP.PowerShell connection is open in this session (The current connection holds no SharePoint context. Please use one of the Connect-PnPOnline commands which uses the -Url argument to connect.).
+       Nothing is signed in, so nothing can be verified against the tenant.
+       Sign in first, then re-run. For example: Connect-PnPOnline -Url 'https://fake-admin.sharepoint.com' -Interactive
+       Note: Microsoft.Online.SharePoint.PowerShell is installed but cannot be loaded in this PowerShell edition (Core), so Get-SPOTenant is unavailable. Re-run from Windows PowerShell 5.1, or install a Core-compatible build.
+
+[MANUAL] 2. Pay-as-you-go document processing is activated
+       Microsoft.Online.SharePoint.PowerShell is installed but cannot be loaded in this PowerShell edition (Core), so Get-SPOTenant is unavailable. Re-run from Windows PowerShell 5.1, or install a Core-compatible build.
+       Check it by hand here:
+         https://admin.microsoft.com
+           -> Settings -> Org settings -> Pay-as-you-go services
+           -> Syntex services (or Document processing services) -> Manage billing
+         During initial setup the same state lives under
+           Setup -> Billing and licenses -> Activate pay-as-you-go services -> Get started
+           -> Pay-as-you-go services -> Billing tab -> Document processing services
+         Older admin-center builds: Settings -> Org settings -> Services -> Microsoft Syntex
+
+[FAIL] 3. Azure subscription and resource group linkage is present
+       -AzureSubscriptionId 'not-a-guid' is not a well-formed GUID.
+       Azure context account : <redacted-operator-upn>
+       The current Azure context targets subscription '<redacted-subscription-guid>', not 'not-a-guid', so the resource group cannot be resolved in the intended subscription.
+       This verifier will not switch context, because that would mean invoking a Set-* cmdlet. Select the subscription yourself and re-run.
+       Az.Billing is installed but cannot be loaded in this PowerShell edition (Core), so Get-AzConsumptionUsageDetail is unavailable. Re-run from Windows PowerShell 5.1, or install a Core-compatible build.
+       Without it, the Microsoft 365 -> Azure billing linkage cannot be proven from PowerShell.
+       Confirm the linkage by hand here:
+         https://admin.microsoft.com
+           -> Settings -> Org settings -> Pay-as-you-go services -> Syntex services
+           -> Manage billing -> the Azure subscription and resource group shown there
+         Cross-check the Azure side at https://portal.azure.com
+           -> Cost Management + Billing -> Cost Management -> Cost analysis
+           -> scope to the resource group -> group by Meter
+
+[MANUAL] 4. Pilot library exists and the processing scope is as expected
+       No PnP session is open, so the library cannot be read.
+       Processing scope not readable: Microsoft.Online.SharePoint.PowerShell is installed but cannot be loaded in this PowerShell edition (Core), so Get-SPOTenant is unavailable. Re-run from Windows PowerShell 5.1, or install a Core-compatible build.
+       Check both halves by hand here:
+         Library: the pilot site -> Settings gear -> Site contents
+         Scope  : https://admin.microsoft.com -> Pay-as-you-go services -> Settings tab
+                  -> Document processing services -> Prebuilt document processing -> site options
+
+[MANUAL] 5. Model creation entry point is reachable (configuration check only)
+       This check reads only. It never creates a model, a content center or any other object.
+       Model read cmdlet     : Get-PnPSyntexModel is available from PnP.PowerShell.
+       No PnP session is open, so neither the content center nor the model list can be read.
+       Check it by hand here:
+         https://admin.microsoft.com -> SharePoint admin center -> Active sites
+           -> look for the site whose template is "Content center"
+         Or, for a local model: the pilot library -> Automate -> Set up a model
+         Creating a content center is a mutation and is out of scope for this verifier.
+
+[MANUAL] 6. Azure budget with an enabled alert exists on the billing scope
+       A budget alert is a notification, not a hard spending cap. It bounds surprise, not spend.
+       Az.Billing is installed but cannot be loaded in this PowerShell edition (Core), so Get-AzConsumptionBudget is unavailable. Re-run from Windows PowerShell 5.1, or install a Core-compatible build.
+       Install it with: Install-Module Az.Billing -Scope CurrentUser
+       Check it by hand here:
+         https://portal.azure.com
+           -> Cost Management + Billing -> Cost Management
+           -> Scope: select the subscription, then the resource group 'rg-syntex-pilot'
+           -> Budgets -> open the budget
+           -> confirm both "Alert conditions" (a threshold) and "Alert recipients" (an email) are set
+
+Summary
+-------
+  [FAIL] 1. Connected to the tenant named by -TenantAdminUrl
+  [MANUAL] 2. Pay-as-you-go document processing is activated
+  [FAIL] 3. Azure subscription and resource group linkage is present
+  [MANUAL] 4. Pilot library exists and the processing scope is as expected
+  [MANUAL] 5. Model creation entry point is reachable (configuration check only)
+  [MANUAL] 6. Azure budget with an enabled alert exists on the billing scope
+
+PASS: 0   FAIL: 2   MANUAL: 4   (only PASS counts as passed)
+
+Result: 0/6 checks passed
+
+Nothing was created, changed, activated or published by this run.
+
+==============================================================================
+D. Scaffold run - Windows PowerShell 5.1
+==============================================================================
+
+Microsoft.Online.SharePoint.PowerShell declares no Core-compatible edition, so
+PowerShell 7 cannot load it at all. Windows PowerShell 5.1 can, which is the only
+way to exercise the Get-SPOTenant code path. Note the difference in the session
+discovery block between this run and run B: under 5.1 the cmdlet is genuinely
+reachable and reports "no Connect-SPOService session", which is a local failure,
+not a network call.
+
+
+Microsoft Syntex - pay-as-you-go setup verification (READ-ONLY)
+==============================================================
+This script reads and reports. It creates nothing, changes nothing,
+activates nothing and signs in to nothing.
+
+Tenant admin URL    : https://fake-admin.sharepoint.com
+Expected tenant     : fake
+Pilot site          : <not supplied>
+Pilot library       : <not supplied>
+Azure subscription  : <not supplied>
+Resource group      : <not supplied>
+Budget name         : <any budget with an enabled alert>
+Budget ceiling      : <not asserted>
+Content center      : <discover by web template CONTENTCTR#0>
+PowerShell          : 5.1.26100.9278 (Desktop)
+
+Session discovery (read-only - no sign-in is attempted)
+-------------------------------------------------------
+  PnP.PowerShell      : No PnP.PowerShell connection is open in this session (The current connection holds no SharePoint context. Please use one of the Connect-PnPOnline commands which uses the -Url argument to connect.).
+  SPO Management Shell: Get-SPOTenant could not read tenant settings - most often this means no Connect-SPOService session is open (No connection available. Use Connect-SPOService before running this CmdLet.).
+  Azure               : No Azure context could be read (Method 'get_SerializationSettings' in type 'Microsoft.Azure.Management.Internal.Resources.ResourceManagementClient' from assembly 'Microsoft.Azure.PowerShell.Clients.ResourceManager, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35' does not have an implementation.).
+
+Checks
+------
+
+[FAIL] 1. Connected to the tenant named by -TenantAdminUrl
+       No PnP.PowerShell connection is open in this session (The current connection holds no SharePoint context. Please use one of the Connect-PnPOnline commands which uses the -Url argument to connect.).
+       Nothing is signed in, so nothing can be verified against the tenant.
+       Sign in first, then re-run. For example: Connect-PnPOnline -Url 'https://fake-admin.sharepoint.com' -Interactive
+       Note: Get-SPOTenant could not read tenant settings - most often this means no Connect-SPOService session is open (No connection available. Use Connect-SPOService before running this CmdLet.).
+
+[MANUAL] 2. Pay-as-you-go document processing is activated
+       Get-SPOTenant could not read tenant settings - most often this means no Connect-SPOService session is open (No connection available. Use Connect-SPOService before running this CmdLet.).
+       Check it by hand here:
+         https://admin.microsoft.com
+           -> Settings -> Org settings -> Pay-as-you-go services
+           -> Syntex services (or Document processing services) -> Manage billing
+         During initial setup the same state lives under
+           Setup -> Billing and licenses -> Activate pay-as-you-go services -> Get started
+           -> Pay-as-you-go services -> Billing tab -> Document processing services
+         Older admin-center builds: Settings -> Org settings -> Services -> Microsoft Syntex
+
+[MANUAL] 3. Azure subscription and resource group linkage is present
+       Neither -AzureSubscriptionId nor -ResourceGroup was supplied, so there is nothing to verify against.
+       Confirm the linkage by hand here:
+         https://admin.microsoft.com
+           -> Settings -> Org settings -> Pay-as-you-go services -> Syntex services
+           -> Manage billing -> the Azure subscription and resource group shown there
+         Cross-check the Azure side at https://portal.azure.com
+           -> Cost Management + Billing -> Cost Management -> Cost analysis
+           -> scope to the resource group -> group by Meter
+
+[MANUAL] 4. Pilot library exists and the processing scope is as expected
+       -PilotLibraryName was not supplied, so no library was checked.
+       Processing scope not readable: Get-SPOTenant could not read tenant settings - most often this means no Connect-SPOService session is open (No connection available. Use Connect-SPOService before running this CmdLet.).
+       Check both halves by hand here:
+         Library: the pilot site -> Settings gear -> Site contents
+         Scope  : https://admin.microsoft.com -> Pay-as-you-go services -> Settings tab
+                  -> Document processing services -> Prebuilt document processing -> site options
+
+[MANUAL] 5. Model creation entry point is reachable (configuration check only)
+       This check reads only. It never creates a model, a content center or any other object.
+       Model read cmdlet     : Get-PnPSyntexModel is available from PnP.PowerShell.
+       No PnP session is open, so neither the content center nor the model list can be read.
+       Check it by hand here:
+         https://admin.microsoft.com -> SharePoint admin center -> Active sites
+           -> look for the site whose template is "Content center"
+         Or, for a local model: the pilot library -> Automate -> Set up a model
+         Creating a content center is a mutation and is out of scope for this verifier.
+
+[MANUAL] 6. Azure budget with an enabled alert exists on the billing scope
+       A budget alert is a notification, not a hard spending cap. It bounds surprise, not spend.
+       Neither -AzureSubscriptionId nor -ResourceGroup was supplied, so no budget scope was given to verify.
+       Check it by hand here:
+         https://portal.azure.com
+           -> Cost Management + Billing -> Cost Management
+           -> Scope: select the subscription
+           -> Budgets -> open the budget
+           -> confirm both "Alert conditions" (a threshold) and "Alert recipients" (an email) are set
+
+Summary
+-------
+  [FAIL] 1. Connected to the tenant named by -TenantAdminUrl
+  [MANUAL] 2. Pay-as-you-go document processing is activated
+  [MANUAL] 3. Azure subscription and resource group linkage is present
+  [MANUAL] 4. Pilot library exists and the processing scope is as expected
+  [MANUAL] 5. Model creation entry point is reachable (configuration check only)
+  [MANUAL] 6. Azure budget with an enabled alert exists on the billing scope
+
+PASS: 0   FAIL: 1   MANUAL: 5   (only PASS counts as passed)
+
+Result: 0/6 checks passed
+
+Nothing was created, changed, activated or published by this run.
+
+==============================================================================
+E. -FailOnIncomplete exit code
+==============================================================================
+
+without -FailOnIncomplete : exit 0   (report-only; the 'Result:' line is the verdict)
+with    -FailOnIncomplete : exit 1   (not every check returned PASS)
+
+==============================================================================
+F. Comment-based help
+==============================================================================
+
+Synopsis present     : True
+Description present  : True
+Parameters documented: 10
+Examples             : 3
+Notes present        : True
+Parameter names      : TenantAdminUrl, PilotSiteUrl, PilotLibraryName, AzureSubscriptionId, ResourceGroup, BudgetName, MaxBudgetAmount, ContentCenterUrl, UsageLookbackDays, FailOnIncomplete
+
+==============================================================================
+G. PSScriptAnalyzer
+==============================================================================
+
+Invoke-ScriptAnalyzer -Path Test-SyntexSetup.ps1 -Severity Error,Warning,Information
+
+PSScriptAnalyzer: 0 Error, 0 Warning, 0 Information
+
+==============================================================================
+H. Mutation proof 1 of 3 - AST: every command the script CAN invoke
+==============================================================================
+
+Parsed with [System.Management.Automation.Language.Parser]::ParseFile and walked for
+CommandAst nodes. This is the complete set of commands the file is capable of
+invoking - it cannot be fooled by a cmdlet name that only appears in help text.
+
+Parse errors                 : 0
+Command invocation sites     : 132
+Distinct commands invoked    : 32
+
+  Get-AzConsumptionBudget
+  Get-AzConsumptionUsageDetail
+  Get-AzContext
+  Get-AzResourceGroup
+  Get-AzSubscription
+  Get-AzureSessionState
+  Get-CmdletAvailability
+  Get-Command
+  Get-Date
+  Get-Module
+  Get-NormalizedUrl
+  Get-PnPConnection
+  Get-PnPList
+  Get-PnPSessionState
+  Get-PnPSyntexModel
+  Get-PnPTenantSite
+  Get-SafeProperty
+  Get-SPOTenant
+  Get-SpoTenantState
+  Get-TenantKey
+  Import-CandidateModule
+  Import-Module
+  Resolve-Verdict
+  Set-StrictMode
+  Test-GuidFormat
+  Test-HasProperty
+  Where-Object
+  Write-CheckResult
+  Write-Console
+  Write-Host
+  Write-Section
+  Write-Verbose
+
+REQUIRED LIST (Set|Add|New|Remove|Activate|Publish): Set-StrictMode
+WIDER SWEEP (also Connect/Invoke/Update/Enable/...): Set-StrictMode
+
+Set-StrictMode is the only match, in both the required list and the wider sweep.
+It is mandated by the task specification, and it changes only the strictness of
+the current PowerShell scope - it touches no tenant, no subscription and no file.
+Note also what is ABSENT: there is no Connect-* command anywhere in the script.
+
+==============================================================================
+I. Mutation proof 2 of 3 - grep, with every hit classified
+==============================================================================
+
+Pattern: (?<![\w-])(Set|Add|New|Remove|Activate|Publish)-[A-Za-z]
+Each raw textual hit is cross-referenced against the AST to say whether that line
+actually invokes a command or merely mentions one in help text or a string.
+
+    17  text only    the whole file is the mandatory 'Set-StrictMode -Version Latest' on the line
+    80  text only    Set-StrictMode a missing member is a terminating error.
+   266  INVOCATION  Set-StrictMode -Version Latest
+   322  text only    an output type, and under Set-StrictMode -Version Latest touching a
+
+Raw textual hits            : 4
+Of which real invocations   : 1
+
+==============================================================================
+J. Mutation proof 3 of 3 - command breakpoints, both PowerShell editions
+==============================================================================
+
+Set-PSBreakpoint -Command fires on ACTUAL invocation. Unlike stub functions it does
+not shadow the real command, so Get-Command metadata - which the verifier own
+capability probe reads - is unchanged by the measurement. 60 breakpoints are armed
+across sign-in, SharePoint mutation, Syntex publish, Azure mutation, raw HTTP and
+local filesystem cmdlets, then the verifier is run inside them.
+
+--- PowerShell 7, fully parameterised ---
+
+Armed 60 command breakpoints.
+Verifier exit code: 0
+Breakpoints armed  : 60
+Breakpoints tripped: 0
+  NONE. The verifier invoked no sign-in, no mutation, no publish and no raw HTTP cmdlet.
+
+--- Windows PowerShell 5.1 ---
+
+Armed 60 command breakpoints.
+Verifier exit code: 0
+Breakpoints armed  : 60
+Breakpoints tripped: 0
+  NONE. The verifier invoked no sign-in, no mutation, no publish and no raw HTTP cmdlet.
+
+The armed set, for the record:
+
+  'Connect-PnPOnline', 'Connect-SPOService', 'Connect-AzAccount', 'Connect-MgGraph',
+  'Disconnect-PnPOnline', 'Disconnect-SPOService', 'Disconnect-AzAccount',
+  'Set-SPOTenant', 'Set-SPOSite', 'New-SPOSite', 'Remove-SPOSite',
+  'Set-PnPTenant', 'Set-PnPTenantSite', 'New-PnPTenantSite', 'New-PnPSite',
+  'New-PnPList', 'Remove-PnPList', 'Set-PnPList',
+  'Add-PnPListItem', 'Set-PnPListItem', 'Remove-PnPListItem',
+  'Add-PnPFile', 'Remove-PnPFile', 'Add-PnPField', 'Add-PnPFieldFromXml',
+  'Add-PnPContentTypeToList', 'New-PnPContentType',
+  'Publish-PnPSyntexModel', 'Unpublish-PnPSyntexModel',
+  'Request-PnPSyntexClassifyAndExtract',
+  'Invoke-PnPSPRestMethod', 'Invoke-PnPGraphMethod', 'Invoke-PnPSiteTemplate',
+  'Set-AzContext', 'Select-AzSubscription',
+  'New-AzResourceGroup', 'Remove-AzResourceGroup', 'Set-AzResourceGroup',
+  'New-AzConsumptionBudget', 'Set-AzConsumptionBudget', 'Remove-AzConsumptionBudget',
+  'New-AzRoleAssignment', 'Remove-AzRoleAssignment',
+  'Register-AzResourceProvider', 'New-AzResource', 'Set-AzResource', 'Remove-AzResource',
+  'Invoke-RestMethod', 'Invoke-WebRequest', 'Invoke-Expression',
+  'New-Item', 'Remove-Item', 'Set-Item', 'Set-Content', 'Add-Content', 'Out-File',
+  'Start-Process', 'New-Object', 'Add-Member', 'Set-Variable'
+
+What this proves, and what it does not: it proves the verifier invokes no sign-in,
+no mutating, no publishing and no raw-HTTP CMDLET. PnP and Az reach the network
+through .NET HttpClient rather than through Invoke-RestMethod, so a breakpoint
+cannot see that layer - which is exactly why the AST proof in section H matters:
+the only tenant-facing commands in the file are Get-*.
+
+==============================================================================
+K. Known environment limitation found while testing
+==============================================================================
+
+On this host the SharePoint reads and the Azure reads cannot run in the same
+PowerShell edition:
+
+  PowerShell 7.6.5   Microsoft.Online.SharePoint.PowerShell -> TypeLoadException
+                     (no CompatiblePSEditions; cannot load under Core)
+                     Az.Accounts 5.3.2                      -> loads, context readable
+                     Az.Billing 2.3.0                       -> demands Az.Accounts 5.5.0,
+                                                               which is not installed
+
+  Windows PS 5.1     Microsoft.Online.SharePoint.PowerShell -> loads, Get-SPOTenant reachable
+                     Az.Accounts 5.3.2                      -> Get-AzContext throws
+                                                               MissingMethodException
+                                                               (get_SerializationSettings)
+
+The verifier degrades each affected check to [MANUAL] independently instead of
+failing, so it still produces a useful report in either edition. A live T6 run
+either needs two passes, or the Az module set repaired first:
+  Install-Module Az.Accounts -RequiredVersion 5.5.0 -Scope CurrentUser -Force
+
+==============================================================================
+Evidence provenance
+==============================================================================
+
+Unredacted transcript : docs/evidence/raw/t4-test-scaffold-raw.txt (gitignored)
+SHA-256               : 80F95741F4175E7AEF7BE3EA6DC81DAF980C2857B8A61E6B1507C0F1E688B798
+Redactions applied    : <redacted-operator-upn>, <redacted-subscription-guid>, <redacted-tenant-guid>
+
