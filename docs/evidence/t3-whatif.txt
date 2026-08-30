@@ -1,0 +1,480 @@
+================================================================================
+T3 EVIDENCE - tools/syntex-setup/Enable-SyntexPayAsYouGo.ps1
+================================================================================
+Generated  : 2026-08-30 22:28:50 +02:00
+Host OS    : Microsoft Windows NT 10.0.26200.0
+PowerShell : Core 7.6.5 AND Windows PowerShell 5.1 - both exercised
+
+PRIVACY: every parameter value below is a deliberate placeholder ("fake-*", the
+all-zero GUID). No tenant, subscription, site, vendor or financial data appears in
+this file, so it is safe to commit under the plan's evidence-privacy policy.
+
+SCOPE OF THIS PASS: authoring plus OFFLINE QA only. No tenant was contacted and no
+credential was used. The -Preflight path and the live mutating path were NOT
+executed and remain unverified until T6.
+
+--------------------------------------------------------------------------------
+1. ARTIFACT
+--------------------------------------------------------------------------------
+Path    : tools/syntex-setup/Enable-SyntexPayAsYouGo.ps1
+Lines   : 831
+SHA-256 : 3856A5087284B178CA0BBE4158B2C441D8191C4BD4C38D17030B68C85C09E107
+
+--------------------------------------------------------------------------------
+2. REQUIRED QA INVOCATION (PowerShell Core 7)
+--------------------------------------------------------------------------------
+Command:
+  pwsh -NoProfile -File Enable-SyntexPayAsYouGo.ps1 -WhatIf `
+       -TenantAdminUrl "https://fake-admin.sharepoint.com" `
+       -AzureSubscriptionId "00000000-0000-0000-0000-000000000000" `
+       -ResourceGroup "fake-rg" `
+       -PilotSiteUrl "https://fake.sharepoint.com/sites/pilot"
+
+Transcript:
+
+Microsoft Syntex - pay-as-you-go document processing enablement
+==============================================================
+Mode                : WHATIF (offline dry run - no connection, no mutation)
+Tenant admin URL    : https://fake-admin.sharepoint.com
+Azure subscription  : 00000000-0000-0000-0000-000000000000
+Resource group      : fake-rg
+Billing region      : <not supplied - portal will prompt>
+Pilot site          : https://fake.sharepoint.com/sites/pilot
+Pilot library       : <none - no library will be created>
+Sign-in method      : interactive browser
+
+Processing scope decision
+-------------------------
+  Decision            : SelectedSites
+  Reason              : PilotSiteUrl was supplied, so processing is restricted to that one site.
+  Selected sites      : https://fake.sharepoint.com/sites/pilot
+  List operation      : Append (existing selected sites are preserved)
+  Tenant-wide         : no
+  Acknowledged        : no
+
+Activation surface detected (offline probe, no connection)
+----------------------------------------------------------
+  Scoping provider    : PortalOnly
+  Scoping cmdlet      : <none - portal fallback>
+  Detail              : No available cmdlet exposes a Syntex processing scope on this host; the portal fallback is the only route.
+  Module notes        : Set-PnPTenant: present but has no -PrebuiltModelScope parameter, so it cannot scope Syntex processing. Microsoft.Online.SharePoint.PowerShell: installed but could not be loaded in this PowerShell edition - run the live steps from Windows PowerShell 5.1, or install a Core-compatible build.
+  Billing activation  : PortalOnly (no documented cmdlet exists - see the MANUAL block below)
+
+Intended actions (WOULD RUN - nothing was executed)
+---------------------------------------------------
+  1. WOULD RUN: Connect-PnPOnline -Url 'https://fake-admin.sharepoint.com' -Interactive
+  2. WOULD RUN: Get-AzSubscription / Get-AzResourceGroup read-only checks for subscription '00000000-0000-0000-0000-000000000000' and resource group 'fake-rg'
+  3. WOULD RUN: Get-PnPTenantSite -Identity 'https://fake.sharepoint.com/sites/pilot'   (read-only existence check)
+  4. WOULD SKIP: pilot library creation - no -PilotLibraryName was supplied
+  5. WOULD REPORT (manual): pay-as-you-go billing activation - portal only, see below
+  6. WOULD REPORT (manual): processing scope 'SelectedSites' - no scoping cmdlet on this host, so the portal Settings tab is the only route
+
+Manual portal fallback
+----------------------
+  [MANUAL] Pay-as-you-go billing activation has no documented cmdlet.
+           Complete it once, by hand, in the Microsoft 365 admin center:
+
+           https://admin.microsoft.com
+             -> Setup
+             -> Billing and licenses
+             -> Activate pay-as-you-go services
+             -> Get started
+             -> Pay-as-you-go services -> Billing tab
+             -> Document processing services
+             -> Set up billing and turn on services
+                  Azure subscription : 00000000-0000-0000-0000-000000000000
+                  Resource group     : fake-rg
+                  Region             : <choose a region - it decides where tenant ID and usage metadata are stored>
+             -> read and accept the pay-as-you-go terms of service
+             -> Save
+
+           Then turn the individual service on and choose its sites:
+             -> Pay-as-you-go services -> Settings tab
+             -> Document processing services
+             -> Prebuilt document processing
+             -> site options: choose "Selected sites" and add ONLY the pilot site
+             -> Save
+
+           Older admin-center builds expose the same switch under
+           Settings -> Org settings -> Services -> Microsoft Syntex.
+           Docs: https://learn.microsoft.com/microsoft-365/documentprocessing/syntex-azure-billing
+
+Dry-run notes
+-------------
+  NOTE: no billing region was supplied. The portal step will prompt for one.
+
+WHATIF COMPLETE. No connection was opened. No resource was created, changed or activated.
+Next step: re-run with -Preflight against a real target to validate it, then run live.
+
+
+EXIT CODE: 0   (required: 0)
+
+--------------------------------------------------------------------------------
+3. SAME INVOCATION UNDER WINDOWS POWERSHELL 5.1
+--------------------------------------------------------------------------------
+Why a second edition matters. Microsoft.Online.SharePoint.PowerShell declares no
+Core-compatible edition, so PowerShell 7 cannot load it on this host and the script
+honestly degrades to the portal fallback. Under Windows PowerShell 5.1 the module
+loads, the offline probe finds Set-SPOTenant, and the site-scoped branch resolves
+for real - which proves that branch is live code, not decoration.
+
+Transcript:
+
+Microsoft Syntex - pay-as-you-go document processing enablement
+==============================================================
+Mode                : WHATIF (offline dry run - no connection, no mutation)
+Tenant admin URL    : https://fake-admin.sharepoint.com
+Azure subscription  : 00000000-0000-0000-0000-000000000000
+Resource group      : fake-rg
+Billing region      : <not supplied - portal will prompt>
+Pilot site          : https://fake.sharepoint.com/sites/pilot
+Pilot library       : <none - no library will be created>
+Sign-in method      : interactive browser
+
+Processing scope decision
+-------------------------
+  Decision            : SelectedSites
+  Reason              : PilotSiteUrl was supplied, so processing is restricted to that one site.
+  Selected sites      : https://fake.sharepoint.com/sites/pilot
+  List operation      : Append (existing selected sites are preserved)
+  Tenant-wide         : no
+  Acknowledged        : no
+
+Activation surface detected (offline probe, no connection)
+----------------------------------------------------------
+  Scoping provider    : SPO
+  Scoping cmdlet      : Set-SPOTenant
+  Detail              : Set-SPOTenant exposes -PrebuiltModelScope (NoSites / AllSites / SelectedSites) and -PrebuiltModelSelectedSitesList.
+  Module notes        : Set-PnPTenant: present but has no -PrebuiltModelScope parameter, so it cannot scope Syntex processing.
+  Billing activation  : PortalOnly (no documented cmdlet exists - see the MANUAL block below)
+
+Intended actions (WOULD RUN - nothing was executed)
+---------------------------------------------------
+  1. WOULD RUN: Connect-PnPOnline -Url 'https://fake-admin.sharepoint.com' -Interactive
+  2. WOULD RUN: Connect-SPOService -Url 'https://fake-admin.sharepoint.com'  (SharePoint Online Management Shell; no device-code option)
+  3. WOULD RUN: Get-AzSubscription / Get-AzResourceGroup read-only checks for subscription '00000000-0000-0000-0000-000000000000' and resource group 'fake-rg'
+  4. WOULD RUN: Get-PnPTenantSite -Identity 'https://fake.sharepoint.com/sites/pilot'   (read-only existence check)
+  5. WOULD SKIP: pilot library creation - no -PilotLibraryName was supplied
+  6. WOULD REPORT (manual): pay-as-you-go billing activation - portal only, see below
+  7. WOULD RUN: Set-SPOTenant -PrebuiltModelScope SelectedSites -PrebuiltModelSelectedSitesList 'https://fake.sharepoint.com/sites/pilot' -PrebuiltModelSelectedSitesListOperation Append
+               (preceded by a Get-SPOTenant read; if the scope and the site list already match, this is a reported no-op)
+
+Manual portal fallback
+----------------------
+  [MANUAL] Pay-as-you-go billing activation has no documented cmdlet.
+           Complete it once, by hand, in the Microsoft 365 admin center:
+
+           https://admin.microsoft.com
+             -> Setup
+             -> Billing and licenses
+             -> Activate pay-as-you-go services
+             -> Get started
+             -> Pay-as-you-go services -> Billing tab
+             -> Document processing services
+             -> Set up billing and turn on services
+                  Azure subscription : 00000000-0000-0000-0000-000000000000
+                  Resource group     : fake-rg
+                  Region             : <choose a region - it decides where tenant ID and usage metadata are stored>
+             -> read and accept the pay-as-you-go terms of service
+             -> Save
+
+           Then turn the individual service on and choose its sites:
+             -> Pay-as-you-go services -> Settings tab
+             -> Document processing services
+             -> Prebuilt document processing
+             -> site options: choose "Selected sites" and add ONLY the pilot site
+             -> Save
+
+           Older admin-center builds expose the same switch under
+           Settings -> Org settings -> Services -> Microsoft Syntex.
+           Docs: https://learn.microsoft.com/microsoft-365/documentprocessing/syntex-azure-billing
+
+Dry-run notes
+-------------
+  NOTE: no billing region was supplied. The portal step will prompt for one.
+
+WHATIF COMPLETE. No connection was opened. No resource was created, changed or activated.
+Next step: re-run with -Preflight against a real target to validate it, then run live.
+
+
+EXIT CODE: 0   (required: 0)
+
+--------------------------------------------------------------------------------
+4. TENANT-WIDE GATE (induced failure, offline, Windows PowerShell 5.1)
+--------------------------------------------------------------------------------
+Run under 5.1 deliberately, so the real scoping cmdlet IS available and the refusal
+cannot be mistaken for "no cmdlet was found anyway".
+
+4a. No -PilotSiteUrl and no -AcknowledgeTenantWide -> the plan must REFUSE.
+
+
+Microsoft Syntex - pay-as-you-go document processing enablement
+==============================================================
+Mode                : WHATIF (offline dry run - no connection, no mutation)
+Tenant admin URL    : https://fake-admin.sharepoint.com
+Azure subscription  : 00000000-0000-0000-0000-000000000000
+Resource group      : fake-rg
+Billing region      : <not supplied - portal will prompt>
+Pilot site          : <not supplied>
+Pilot library       : <none - no library will be created>
+Sign-in method      : interactive browser
+
+Processing scope decision
+-------------------------
+  Decision            : AllSites
+  Reason              : No PilotSiteUrl was supplied. Tenant-wide enablement is blocked until -AcknowledgeTenantWide is passed explicitly.
+  Tenant-wide         : YES
+  Acknowledged        : no
+WARNING: TENANT-WIDE ENABLEMENT REQUESTED. Every site in the tenant would become billable for document processing. 
+Supply -PilotSiteUrl to scope it, or pass -AcknowledgeTenantWide to accept the exposure deliberately.
+
+Activation surface detected (offline probe, no connection)
+----------------------------------------------------------
+  Scoping provider    : SPO
+  Scoping cmdlet      : Set-SPOTenant
+  Detail              : Set-SPOTenant exposes -PrebuiltModelScope (NoSites / AllSites / SelectedSites) and -PrebuiltModelSelectedSitesList.
+  Module notes        : Set-PnPTenant: present but has no -PrebuiltModelScope parameter, so it cannot scope Syntex processing.
+  Billing activation  : PortalOnly (no documented cmdlet exists - see the MANUAL block below)
+
+Intended actions (WOULD RUN - nothing was executed)
+---------------------------------------------------
+  1. WOULD RUN: Connect-PnPOnline -Url 'https://fake-admin.sharepoint.com' -Interactive
+  2. WOULD RUN: Connect-SPOService -Url 'https://fake-admin.sharepoint.com'  (SharePoint Online Management Shell; no device-code option)
+  3. WOULD RUN: Get-AzSubscription / Get-AzResourceGroup read-only checks for subscription '00000000-0000-0000-0000-000000000000' and resource group 'fake-rg'
+  4. WOULD SKIP: pilot site existence check - no -PilotSiteUrl was supplied
+  5. WOULD SKIP: pilot library creation - no -PilotLibraryName was supplied
+  6. WOULD REPORT (manual): pay-as-you-go billing activation - portal only, see below
+  7. WOULD REFUSE: tenant-wide enablement without -AcknowledgeTenantWide. A live run would stop here with an error and activate nothing.
+
+Manual portal fallback
+----------------------
+  [MANUAL] Pay-as-you-go billing activation has no documented cmdlet.
+           Complete it once, by hand, in the Microsoft 365 admin center:
+
+           https://admin.microsoft.com
+             -> Setup
+             -> Billing and licenses
+             -> Activate pay-as-you-go services
+             -> Get started
+             -> Pay-as-you-go services -> Billing tab
+             -> Document processing services
+             -> Set up billing and turn on services
+                  Azure subscription : 00000000-0000-0000-0000-000000000000
+                  Resource group     : fake-rg
+                  Region             : <choose a region - it decides where tenant ID and usage metadata are stored>
+             -> read and accept the pay-as-you-go terms of service
+             -> Save
+
+           Then turn the individual service on and choose its sites:
+             -> Pay-as-you-go services -> Settings tab
+             -> Document processing services
+             -> Prebuilt document processing
+             -> site options: choose "Selected sites" and add ONLY the pilot site
+             -> Save
+
+           Older admin-center builds expose the same switch under
+           Settings -> Org settings -> Services -> Microsoft Syntex.
+           Docs: https://learn.microsoft.com/microsoft-365/documentprocessing/syntex-azure-billing
+
+Dry-run notes
+-------------
+  NOTE: no billing region was supplied. The portal step will prompt for one.
+
+WHATIF COMPLETE. No connection was opened. No resource was created, changed or activated.
+Next step: re-run with -Preflight against a real target to validate it, then run live.
+
+
+EXIT CODE: 0
+(The dry run itself still exits 0 by contract; what it reports is that a LIVE run
+would stop with an error and activate nothing.)
+
+4b. Identical call plus the explicit -AcknowledgeTenantWide switch -> permitted,
+    and the tenant-wide command is printed.
+
+
+Microsoft Syntex - pay-as-you-go document processing enablement
+==============================================================
+Mode                : WHATIF (offline dry run - no connection, no mutation)
+Tenant admin URL    : https://fake-admin.sharepoint.com
+Azure subscription  : 00000000-0000-0000-0000-000000000000
+Resource group      : fake-rg
+Billing region      : <not supplied - portal will prompt>
+Pilot site          : <not supplied>
+Pilot library       : <none - no library will be created>
+Sign-in method      : interactive browser
+
+Processing scope decision
+-------------------------
+  Decision            : AllSites
+  Reason              : No PilotSiteUrl was supplied and -AcknowledgeTenantWide was passed, so processing would be enabled for EVERY site in the tenant.
+  Tenant-wide         : YES
+  Acknowledged        : yes (-AcknowledgeTenantWide)
+WARNING: TENANT-WIDE ENABLEMENT REQUESTED. Every site in the tenant would become billable for document processing. 
+Supply -PilotSiteUrl to scope it, or pass -AcknowledgeTenantWide to accept the exposure deliberately.
+
+Activation surface detected (offline probe, no connection)
+----------------------------------------------------------
+  Scoping provider    : SPO
+  Scoping cmdlet      : Set-SPOTenant
+  Detail              : Set-SPOTenant exposes -PrebuiltModelScope (NoSites / AllSites / SelectedSites) and -PrebuiltModelSelectedSitesList.
+  Module notes        : Set-PnPTenant: present but has no -PrebuiltModelScope parameter, so it cannot scope Syntex processing.
+  Billing activation  : PortalOnly (no documented cmdlet exists - see the MANUAL block below)
+
+Intended actions (WOULD RUN - nothing was executed)
+---------------------------------------------------
+  1. WOULD RUN: Connect-PnPOnline -Url 'https://fake-admin.sharepoint.com' -Interactive
+  2. WOULD RUN: Connect-SPOService -Url 'https://fake-admin.sharepoint.com'  (SharePoint Online Management Shell; no device-code option)
+  3. WOULD RUN: Get-AzSubscription / Get-AzResourceGroup read-only checks for subscription '00000000-0000-0000-0000-000000000000' and resource group 'fake-rg'
+  4. WOULD SKIP: pilot site existence check - no -PilotSiteUrl was supplied
+  5. WOULD SKIP: pilot library creation - no -PilotLibraryName was supplied
+  6. WOULD REPORT (manual): pay-as-you-go billing activation - portal only, see below
+  7. WOULD RUN: Set-SPOTenant -PrebuiltModelScope AllSites   (no site list is passed for a tenant-wide scope)
+               (preceded by a Get-SPOTenant read; if the scope and the site list already match, this is a reported no-op)
+
+Manual portal fallback
+----------------------
+  [MANUAL] Pay-as-you-go billing activation has no documented cmdlet.
+           Complete it once, by hand, in the Microsoft 365 admin center:
+
+           https://admin.microsoft.com
+             -> Setup
+             -> Billing and licenses
+             -> Activate pay-as-you-go services
+             -> Get started
+             -> Pay-as-you-go services -> Billing tab
+             -> Document processing services
+             -> Set up billing and turn on services
+                  Azure subscription : 00000000-0000-0000-0000-000000000000
+                  Resource group     : fake-rg
+                  Region             : <choose a region - it decides where tenant ID and usage metadata are stored>
+             -> read and accept the pay-as-you-go terms of service
+             -> Save
+
+           Then turn the individual service on and choose its sites:
+             -> Pay-as-you-go services -> Settings tab
+             -> Document processing services
+             -> Prebuilt document processing
+             -> site options: choose "Selected sites" and add ONLY the pilot site
+             -> Save
+
+           Older admin-center builds expose the same switch under
+           Settings -> Org settings -> Services -> Microsoft Syntex.
+           Docs: https://learn.microsoft.com/microsoft-365/documentprocessing/syntex-azure-billing
+
+Dry-run notes
+-------------
+  NOTE: no billing region was supplied. The portal step will prompt for one.
+
+WHATIF COMPLETE. No connection was opened. No resource was created, changed or activated.
+Next step: re-run with -Preflight against a real target to validate it, then run live.
+
+
+EXIT CODE: 0
+
+--------------------------------------------------------------------------------
+5. PSSCRIPTANALYZER
+--------------------------------------------------------------------------------
+Command : Invoke-ScriptAnalyzer -Path Enable-SyntexPayAsYouGo.ps1 -Severity Error,Warning,Information
+Module  : PSScriptAnalyzer 1.25.0
+
+(Invoke-ScriptAnalyzer returned no diagnostics at any severity)
+Errors      : 0   <- gate: must be 0
+Warnings    : 0
+Information : 0
+
+--------------------------------------------------------------------------------
+6. PROOF THAT -WhatIf INVOKES NOTHING
+--------------------------------------------------------------------------------
+Grepping the transcript alone is weak evidence, because the dry run legitimately
+PRINTS cmdlet names inside its "WOULD RUN:" lines. Invocation was therefore
+measured directly instead of inferred.
+
+Method. Set-PSBreakpoint -Command fires when a command is actually invoked. Unlike a
+stub function it does not shadow the command and does not alter Get-Command
+metadata, so the script under test resolves exactly the cmdlets it would resolve in
+a live run. 29 breakpoints were armed across every connect, create, mutate, read and
+raw-HTTP cmdlet the script can reach; each appends "TRIPPED: <name>" when entered.
+An empty trip log is the proof. Harness: t3-trap.ps1 (temporary, not committed).
+
+Watched: Connect-PnPOnline, Connect-SPOService, Connect-AzAccount, Connect-MgGraph,
+Connect-ExchangeOnline, Connect-MicrosoftTeams, New-PnPList, New-PnPSite,
+New-PnPTenantSite, New-AzResourceGroup, Set-PnPTenant, Set-SPOTenant, Set-PnPList,
+Set-AzContext, Add-PnPField, Add-PnPFieldFromXml, Add-PnPContentTypeToList,
+Remove-PnPList, Remove-AzResourceGroup, Get-PnPTenantSite, Get-PnPList,
+Get-PnPTenant, Get-SPOTenant, Get-AzSubscription, Get-AzResourceGroup,
+Get-AzRoleAssignment, Get-AzContext, Invoke-RestMethod, Invoke-WebRequest
+
+Trip log - PowerShell Core 7 (0 tripped):
+# armed 29 command breakpoints
+
+Trip log - Windows PowerShell 5.1, SPO module genuinely loadable there (0 tripped):
+# armed 29 command breakpoints
+
+RESULT: 0 of 29 watched commands invoked, in either edition.
+        -WhatIf is genuinely inert.
+
+--------------------------------------------------------------------------------
+7. STATIC CHECKS
+--------------------------------------------------------------------------------
+7a. Idempotency branches - an already-present object or an already-correct scope is
+    reported and skipped, never treated as an error:
+  line  131: PilotSiteUrl before activation. If the library already exists it is reported and
+  line  132: left untouched. If the parameter is omitted no library is created.
+  line  194: an already scoped site and an already active service are each reported and
+  line  571: Write-Console "               New-PnPList -Title '$PilotLibraryName' -Template DocumentLibrary   (idempotent: existing library is left untouched)"
+  line  765: Write-Console "  [OK] Library '$PilotLibraryName' already exists - left untouched (idempotent no-op)." 'Green'
+  line  809: Write-Console "  [OK] Processing is already scoped to $($scopePlan.Scope) including the requested site(s) - reported, no change made (idempotent no-op)." 'Green'
+
+7b. Tenant-wide enablement is gated behind the explicit acknowledgement switch:
+  line  127: tenant-wide enablement, which requires -AcknowledgeTenantWide.
+  line  145: .PARAMETER AcknowledgeTenantWide
+  line  230: [switch]$AcknowledgeTenantWide
+  line  326: "No PilotSiteUrl was supplied and -AcknowledgeTenantWide was passed, so processing would be enabled for EVERY site in the tenant."
+  line  328: "No PilotSiteUrl was supplied. Tenant-wide enablement is blocked until -AcknowledgeTenantWide is passed explicitly."
+  line  510: $scopePlan = Get-ProcessingScopePlan -SiteUrl $PilotSiteUrl -TenantWideAcknowledged ([bool]$AcknowledgeTenantWide)
+  line  521: Write-Console "  Acknowledged        : $(if ($AcknowledgeTenantWide) { 'yes (-AcknowledgeTenantWide)' } else { 'no' })"
+  line  524: Write-Warning 'TENANT-WIDE ENABLEMENT REQUESTED. Every site in the tenant would become billable for document processing. Supply -PilotSiteUrl to scope it, or pass -AcknowledgeTenantWide to accept the exposure deliberately.'
+  line  536: if ($capability.Provider -eq 'PortalOnly' -and -not $AcknowledgeTenantWide -and -not $offlineDryRun) {
+  line  582: Write-Console "  $step. WOULD REFUSE: tenant-wide enablement without -AcknowledgeTenantWide. A live run would stop here with an error and activate nothing." 'Yellow'
+  line  630: throw 'PREFLIGHT FAILED: no -PilotSiteUrl was supplied, which means processing would be enabled tenant-wide. Supply -PilotSiteUrl to scope it to the pilot site, or pass -AcknowledgeTenantWide to accept tenant-wide enablement deliberately.'
+  line  795: if ($scopePlan.TenantWide -and -not $AcknowledgeTenantWide) {
+  line  796: throw 'LIVE RUN FAILED: the only available activation surface is tenant-wide and -AcknowledgeTenantWide was not passed. Nothing was activated.'
+  line  799: throw 'LIVE RUN FAILED: tenant-wide enablement was required but -AcknowledgeTenantWide was not passed. Nothing was activated.'
+
+7c. The offline dry run exits at line . Every connect / mutate call site
+    lives below that line, so none of them is reachable under -WhatIf:
+  line   39: Set-SPOTenant -PrebuiltModelScope / -PrebuiltModelSelectedSitesList /
+  line  637: Connect-PnPOnline -Url $TenantAdminUrl -DeviceLogin
+  line  639: Connect-PnPOnline -Url $TenantAdminUrl -Interactive
+  line  656: Connect-AzAccount -UseDeviceAuthentication | Out-Null
+  line  658: Connect-AzAccount | Out-Null
+  line  713: Connect-SPOService -Url $TenantAdminUrl
+  line  758: Connect-PnPOnline -Url $PilotSiteUrl -DeviceLogin
+  line  760: Connect-PnPOnline -Url $PilotSiteUrl -Interactive
+  line  767: New-PnPList -Title $PilotLibraryName -Template DocumentLibrary -OnQuickLaunch | Out-Null
+  line  775: Connect-PnPOnline -Url $TenantAdminUrl -DeviceLogin
+  line  777: Connect-PnPOnline -Url $TenantAdminUrl -Interactive
+  line  814: Set-SPOTenant `
+  line  819: Set-SPOTenant -PrebuiltModelScope $scopePlan.Scope
+
+--------------------------------------------------------------------------------
+8. VERDICT
+--------------------------------------------------------------------------------
+[PASS] File created: tools/syntex-setup/Enable-SyntexPayAsYouGo.ps1
+[PASS] -WhatIf runs with fake values, prints the intended actions including the
+       site-scope versus tenant-wide decision, and exits 0
+[PASS] -WhatIf makes NO Connect-* call - measured by breakpoint, not inferred
+[PASS] PSScriptAnalyzer: 0 errors (also 0 warnings and 0 information)
+[PASS] Idempotency branches present for the library, the scope and already-active state
+[PASS] Tenant-wide enablement refused unless -AcknowledgeTenantWide is passed
+[PASS] Billing activation is documented as the exact portal click-path rather than a
+       guessed cmdlet. The scoping cmdlet that genuinely exists - Set-SPOTenant
+       -PrebuiltModelScope / -PrebuiltModelSelectedSitesList /
+       -PrebuiltModelSelectedSitesListOperation - was verified against the installed
+       module (parameter present; scope enum NoSites, AllSites, SelectedSites; list
+       operations Overwrite, Append, Remove) and is what the script calls.
+
+[NOT RUN] -Preflight and the live mutating path. Both need a real tenant and admin
+          credentials, which this authoring pass deliberately did not use. They stay
+          unverified until T6.
+================================================================================
