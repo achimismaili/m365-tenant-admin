@@ -142,6 +142,14 @@
      clear warning that this is a guess. Supply -TenantId explicitly if the auto-derived
      value is incorrect.
 
+.PARAMETER ClientId
+     Optional. Use your own registered Entra ID app (e.g. created via
+     `Register-PnPEntraIDApp`) instead of PnP's default multi-tenant app. Required if
+     the default PnP Management Shell app (31359c7f-bd7e-475c-86db-fdb8c937548e) has
+     not been granted admin consent in your tenant. When supplied, this parameter works
+     in combination with -TenantId and applies to both -DeviceLogin and -Interactive
+     sign-in methods.
+
 .PARAMETER DeviceLogin
      Authenticate with the device-code flow instead of launching a browser. Useful on
      a headless or remote host. Note that the SharePoint Online Management Shell
@@ -219,6 +227,9 @@ param(
 
     [Parameter(Mandatory = $false)]
     [string]$TenantId,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ClientId,
 
     [Parameter(Mandatory = $false)]
     [string]$AzureSubscriptionId,
@@ -704,9 +715,17 @@ Write-Console '  Connecting to SharePoint (PnP)...' 'Yellow'
 try {
     if ($DeviceLogin) {
         $resolvedTenantId = Get-ResolvedTenantId -ProvidedTenantId $TenantId -TenantAdminUrl $TenantAdminUrl
-        Connect-PnPOnline -Url $TenantAdminUrl -DeviceLogin -Tenant $resolvedTenantId
+        if ([string]::IsNullOrWhiteSpace($ClientId)) {
+            Connect-PnPOnline -Url $TenantAdminUrl -DeviceLogin -Tenant $resolvedTenantId
+        } else {
+            Connect-PnPOnline -Url $TenantAdminUrl -DeviceLogin -Tenant $resolvedTenantId -ClientId $ClientId
+        }
     } else {
-        Connect-PnPOnline -Url $TenantAdminUrl -Interactive
+        if ([string]::IsNullOrWhiteSpace($ClientId)) {
+            Connect-PnPOnline -Url $TenantAdminUrl -Interactive
+        } else {
+            Connect-PnPOnline -Url $TenantAdminUrl -Interactive -ClientId $ClientId
+        }
     }
 } catch {
     throw "PREFLIGHT FAILED: could not connect to '$TenantAdminUrl'. Confirm the tenant admin URL and that you hold the SharePoint Administrator or Global Administrator role. Underlying error: $($_.Exception.Message)"
@@ -826,9 +845,17 @@ if (-not [string]::IsNullOrWhiteSpace($PilotLibraryName)) {
     Write-Console "  Step 1: dedicated pilot library '$PilotLibraryName'..." 'Yellow'
     if ($DeviceLogin) {
         $resolvedTenantId = Get-ResolvedTenantId -ProvidedTenantId $TenantId -TenantAdminUrl $TenantAdminUrl
-        Connect-PnPOnline -Url $PilotSiteUrl -DeviceLogin -Tenant $resolvedTenantId
+        if ([string]::IsNullOrWhiteSpace($ClientId)) {
+            Connect-PnPOnline -Url $PilotSiteUrl -DeviceLogin -Tenant $resolvedTenantId
+        } else {
+            Connect-PnPOnline -Url $PilotSiteUrl -DeviceLogin -Tenant $resolvedTenantId -ClientId $ClientId
+        }
     } else {
-        Connect-PnPOnline -Url $PilotSiteUrl -Interactive
+        if ([string]::IsNullOrWhiteSpace($ClientId)) {
+            Connect-PnPOnline -Url $PilotSiteUrl -Interactive
+        } else {
+            Connect-PnPOnline -Url $PilotSiteUrl -Interactive -ClientId $ClientId
+        }
     }
 
     $existingList = Get-PnPList -Identity $PilotLibraryName -ErrorAction SilentlyContinue
@@ -844,9 +871,17 @@ if (-not [string]::IsNullOrWhiteSpace($PilotLibraryName)) {
     # Return the connection to the tenant admin scope for the remaining steps.
     if ($DeviceLogin) {
         $resolvedTenantId = Get-ResolvedTenantId -ProvidedTenantId $TenantId -TenantAdminUrl $TenantAdminUrl
-        Connect-PnPOnline -Url $TenantAdminUrl -DeviceLogin -Tenant $resolvedTenantId
+        if ([string]::IsNullOrWhiteSpace($ClientId)) {
+            Connect-PnPOnline -Url $TenantAdminUrl -DeviceLogin -Tenant $resolvedTenantId
+        } else {
+            Connect-PnPOnline -Url $TenantAdminUrl -DeviceLogin -Tenant $resolvedTenantId -ClientId $ClientId
+        }
     } else {
-        Connect-PnPOnline -Url $TenantAdminUrl -Interactive
+        if ([string]::IsNullOrWhiteSpace($ClientId)) {
+            Connect-PnPOnline -Url $TenantAdminUrl -Interactive
+        } else {
+            Connect-PnPOnline -Url $TenantAdminUrl -Interactive -ClientId $ClientId
+        }
     }
 } else {
     Write-Console '  Step 1: skipped - no -PilotLibraryName was supplied.' 'Gray'
