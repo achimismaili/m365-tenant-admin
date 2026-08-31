@@ -783,7 +783,12 @@ if ($null -eq $azContext) {
     # A context exists, but if -AzureTenantId was explicitly supplied and differs from the current context,
     # reconnect to the correct tenant to avoid silently using a cached token from the wrong tenant.
     $currentTenantId = $azContext.Tenant.Id
-    $currentTenantDomain = $azContext.Tenant.Directory
+    # PSAzureTenant does not expose a domain/'Directory' property - only Id (a GUID) is reliably
+    # available here, so a domain-form -AzureTenantId (e.g. "contoso.onmicrosoft.com") cannot be
+    # compared against the current context directly. Fall back to the GUID for that case too;
+    # the comparison below treats a non-GUID effective tenant as "unknown, assume mismatch" so a
+    # reconnect is attempted rather than silently trusting a stale context.
+    $currentTenantDomain = $null
     
     # Normalize the effective tenant ID for comparison (handle both GUID and domain formats)
     $effectiveIsGuid = [guid]::TryParse($effectiveAzureTenantId, [ref][guid]::Empty)
