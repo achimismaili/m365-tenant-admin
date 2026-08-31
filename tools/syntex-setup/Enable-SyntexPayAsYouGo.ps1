@@ -150,6 +150,16 @@
      in combination with -TenantId and applies to both -DeviceLogin and -Interactive
      sign-in methods.
 
+.PARAMETER AzureTenantId
+     Optional. The Entra tenant ID/domain that owns the Azure subscription, if it
+     differs from -TenantId (the M365/SharePoint tenant). Common for MSDN/dev
+     subscriptions hosted in a separate tenant. Accepts either a tenant GUID
+     (e.g. 00000000-0000-0000-0000-000000000000) or a domain name
+     (e.g. ismaili.de or contoso.onmicrosoft.com). If omitted, defaults to -TenantId.
+     When supplied, this parameter is passed to Connect-AzAccount -TenantId to ensure
+     the script authenticates against the correct Azure tenant, preventing silent
+     reuse of a cached token from a different tenant.
+
 .PARAMETER DeviceLogin
      Authenticate with the device-code flow instead of launching a browser. Useful on
      a headless or remote host. Note that the SharePoint Online Management Shell
@@ -179,16 +189,20 @@
     no connection, changes nothing and exits 0.
 
 .EXAMPLE
-    .\Enable-SyntexPayAsYouGo.ps1 -Preflight `
-        -TenantAdminUrl "https://contoso-admin.sharepoint.com" `
-        -AzureSubscriptionId "00000000-0000-0000-0000-000000000000" `
-        -ResourceGroup "rg-syntex-pilot" `
-        -Region "westeurope" `
-        -PilotSiteUrl "https://contoso.sharepoint.com/sites/pilot" `
-        -DeviceLogin
+     .\Enable-SyntexPayAsYouGo.ps1 -Preflight `
+         -TenantAdminUrl "https://contoso-admin.sharepoint.com" `
+         -AzureSubscriptionId "00000000-0000-0000-0000-000000000000" `
+         -ResourceGroup "rg-syntex-pilot" `
+         -Region "westeurope" `
+         -PilotSiteUrl "https://contoso.sharepoint.com/sites/pilot" `
+         -DeviceLogin `
+         -TenantId "contoso.onmicrosoft.com" `
+         -AzureTenantId "ismaili.de"
 
-    Authenticated read-only validation using the device-code flow. Fails loudly if the
-    subscription, the resource group or the site is missing. Mutates nothing.
+     Authenticated read-only validation using the device-code flow, with separate M365 and
+     Azure tenants. The -TenantId is for SharePoint (M365), and -AzureTenantId is for the
+     Azure subscription's home tenant. Fails loudly if the subscription, the resource group
+     or the site is missing. Mutates nothing.
 
 .EXAMPLE
     .\Enable-SyntexPayAsYouGo.ps1 `
@@ -230,6 +244,9 @@ param(
 
     [Parameter(Mandatory = $false)]
     [string]$ClientId,
+
+    [Parameter(Mandatory = $false)]
+    [string]$AzureTenantId,
 
     [Parameter(Mandatory = $false)]
     [string]$AzureSubscriptionId,
@@ -698,6 +715,14 @@ if ($offlineDryRun) {
 #          live mutation. Nothing below mutates.
 # =============================================================================
 
+# Resolve the effective Azure tenant ID: use -AzureTenantId if supplied, otherwise fall back to -TenantId.
+# This ensures Connect-AzAccount targets the correct tenant when M365 and Azure are in different tenants.
+$effectiveAzureTenantId = if (-not [string]::IsNullOrWhiteSpace($AzureTenantId)) {
+    $AzureTenantId
+} else {
+    $TenantId
+}
+
 Write-Section 'Preflight - authenticated, read-only'
 
 if (-not (Test-GuidFormat -Value $AzureSubscriptionId)) {
@@ -742,9 +767,47 @@ $azContext = Get-AzContext -ErrorAction SilentlyContinue
 if ($null -eq $azContext) {
     Write-Console '  No Azure context found; signing in...' 'Yellow'
     if ($DeviceLogin) {
-        Connect-AzAccount -UseDeviceAuthentication | Out-Null
+        if (-not [string]::IsNullOrWhiteSpace($effectiveAzureTenantId)) {
+            Connect-AzAccount -UseDeviceAuthentication -TenantId $effectiveAzureTenantId | Out-Null
+        } else {
+            Connect-AzAccount -UseDeviceAuthentication | Out-Null
+        }
     } else {
-        Connect-AzAccount | Out-Null
+        if (-not [string]::IsNullOrWhiteSpace($effectiveAzureTenantId)) {
+            Connect-AzAccount -TenantId $effectiveAzureTenantId | Out-Null
+        } else {
+            Connect-AzAccount | Out-Null
+        }
+    }
+} elseif (-not [string]::IsNullOrWhiteSpace($effectiveAzureTenantId)) {
+    # A context exists, but if -AzureTenantId was explicitly supplied and differs from the current context,
+    # reconnect to the correct tenant to avoid silently using a cached token from the wrong tenant.
+    $currentTenantId = $azContext.Tenant.Id
+    $currentTenantDomain = $azContext.Tenant.Directory
+    
+    # Normalize the effective tenant ID for comparison (handle both GUID and domain formats)
+    $effectiveIsGuid = [guid]::TryParse($effectiveAzureTenantId, [ref][guid]::Empty)
+    $currentIsGuid = [guid]::TryParse($currentTenantId, [ref][guid]::Empty)
+    
+    $tenantMismatch = $false
+    if ($effectiveIsGuid -and $currentIsGuid) {
+        # Both are GUIDs - compare directly
+        $tenantMismatch = $effectiveAzureTenantId -ne $currentTenantId
+    } elseif (-not $effectiveIsGuid -and -not $currentIsGuid) {
+        # Both are domains - compare directly
+        $tenantMismatch = $effectiveAzureTenantId -ne $currentTenantDomain
+    } else {
+        # One is GUID, one is domain - cannot reliably compare, so assume mismatch to be safe
+        $tenantMismatch = $true
+    }
+    
+    if ($tenantMismatch) {
+        Write-Console "  Azure context exists but is for a different tenant ($currentTenantId). Reconnecting to $effectiveAzureTenantId..." 'Yellow'
+        if ($DeviceLogin) {
+            Connect-AzAccount -UseDeviceAuthentication -TenantId $effectiveAzureTenantId -Force | Out-Null
+        } else {
+            Connect-AzAccount -TenantId $effectiveAzureTenantId -Force | Out-Null
+        }
     }
 }
 
