@@ -131,11 +131,23 @@
     PilotSiteUrl before activation. If the library already exists it is reported and
     left untouched. If the parameter is omitted no library is created.
 
+.PARAMETER TenantId
+     Optional tenant identifier for device-code authentication. Accepts either a tenant
+     GUID (e.g. 00000000-0000-0000-0000-000000000000) or a domain name
+     (e.g. contoso.onmicrosoft.com). Required when -DeviceLogin is used with the
+     installed PnP.PowerShell version, which cannot always infer the tenant from -Url
+     alone. If -DeviceLogin is supplied but -TenantId is omitted, the script attempts
+     to auto-derive a reasonable guess from -TenantAdminUrl (e.g.
+     https://contoso-admin.sharepoint.com/ -> contoso.onmicrosoft.com) and prints a
+     clear warning that this is a guess. Supply -TenantId explicitly if the auto-derived
+     value is incorrect.
+
 .PARAMETER DeviceLogin
-    Authenticate with the device-code flow instead of launching a browser. Useful on
-    a headless or remote host. Note that the SharePoint Online Management Shell
-    (Connect-SPOService), which is required for the scoping step, has no device-code
-    option and will still open a browser.
+     Authenticate with the device-code flow instead of launching a browser. Useful on
+     a headless or remote host. Note that the SharePoint Online Management Shell
+     (Connect-SPOService), which is required for the scoping step, has no device-code
+     option and will still open a browser. When -DeviceLogin is used, -TenantId is
+     required (or will be auto-derived with a warning).
 
 .PARAMETER Preflight
     Run the authenticated read-only validation and then stop. Nothing is created,
@@ -204,6 +216,9 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidateNotNullOrEmpty()]
     [string]$TenantAdminUrl,
+
+    [Parameter(Mandatory = $false)]
+    [string]$TenantId,
 
     [Parameter(Mandatory = $false)]
     [string]$AzureSubscriptionId,
@@ -424,6 +439,60 @@ function Get-ScopingCapability {
     return $result
 }
 
+function Get-ResolvedTenantId {
+    <#
+        .SYNOPSIS
+            Resolves or derives a tenant ID for device-code authentication.
+        .DESCRIPTION
+            If -TenantId is supplied, returns it as-is. Otherwise, attempts to
+            auto-derive a reasonable guess from -TenantAdminUrl by stripping the
+            protocol, the "-admin" suffix, and the ".sharepoint.com" domain, then
+            appending ".onmicrosoft.com". Prints a warning that this is a guess.
+            If auto-derivation fails or produces an empty result, throws an error.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $false)]
+        [AllowEmptyString()]
+        [string]$ProvidedTenantId,
+
+        [Parameter(Mandatory = $true)]
+        [string]$TenantAdminUrl
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($ProvidedTenantId)) {
+        return $ProvidedTenantId
+    }
+
+    # Auto-derive from TenantAdminUrl
+    # Example: https://contoso-admin.sharepoint.com/ -> contoso.onmicrosoft.com
+    $url = $TenantAdminUrl.Trim()
+    
+    # Remove protocol
+    $url = $url -replace '^https?://', ''
+    
+    # Remove trailing slash
+    $url = $url -replace '/$', ''
+    
+    # Remove -admin suffix
+    $url = $url -replace '-admin$', ''
+    
+    # Remove .sharepoint.com suffix
+    $url = $url -replace '\.sharepoint\.com$', ''
+    
+    if ([string]::IsNullOrWhiteSpace($url)) {
+        throw "Could not auto-derive a tenant ID from -TenantAdminUrl '$TenantAdminUrl'. Supply -TenantId explicitly (either a tenant GUID or a domain like contoso.onmicrosoft.com)."
+    }
+    
+    $derivedTenantId = "$url.onmicrosoft.com"
+    
+    Write-Console "  [WARNING] -TenantId was not supplied; auto-deriving from -TenantAdminUrl: '$derivedTenantId'" 'Yellow'
+    Write-Console "            If this is incorrect, re-run with -TenantId <correct-tenant-id>" 'Yellow'
+    
+    return $derivedTenantId
+}
+
 function Write-BillingPortalFallback {
     <#
         .SYNOPSIS
@@ -634,7 +703,8 @@ if ($scopePlan.TenantWide -and -not $scopePlan.Allowed) {
 Write-Console '  Connecting to SharePoint (PnP)...' 'Yellow'
 try {
     if ($DeviceLogin) {
-        Connect-PnPOnline -Url $TenantAdminUrl -DeviceLogin
+        $resolvedTenantId = Get-ResolvedTenantId -ProvidedTenantId $TenantId -TenantAdminUrl $TenantAdminUrl
+        Connect-PnPOnline -Url $TenantAdminUrl -DeviceLogin -Tenant $resolvedTenantId
     } else {
         Connect-PnPOnline -Url $TenantAdminUrl -Interactive
     }
@@ -755,7 +825,8 @@ if (-not [string]::IsNullOrWhiteSpace($PilotLibraryName)) {
 
     Write-Console "  Step 1: dedicated pilot library '$PilotLibraryName'..." 'Yellow'
     if ($DeviceLogin) {
-        Connect-PnPOnline -Url $PilotSiteUrl -DeviceLogin
+        $resolvedTenantId = Get-ResolvedTenantId -ProvidedTenantId $TenantId -TenantAdminUrl $TenantAdminUrl
+        Connect-PnPOnline -Url $PilotSiteUrl -DeviceLogin -Tenant $resolvedTenantId
     } else {
         Connect-PnPOnline -Url $PilotSiteUrl -Interactive
     }
@@ -772,7 +843,8 @@ if (-not [string]::IsNullOrWhiteSpace($PilotLibraryName)) {
 
     # Return the connection to the tenant admin scope for the remaining steps.
     if ($DeviceLogin) {
-        Connect-PnPOnline -Url $TenantAdminUrl -DeviceLogin
+        $resolvedTenantId = Get-ResolvedTenantId -ProvidedTenantId $TenantId -TenantAdminUrl $TenantAdminUrl
+        Connect-PnPOnline -Url $TenantAdminUrl -DeviceLogin -Tenant $resolvedTenantId
     } else {
         Connect-PnPOnline -Url $TenantAdminUrl -Interactive
     }
